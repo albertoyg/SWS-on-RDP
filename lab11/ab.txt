@@ -1,5 +1,479 @@
+root@h1:/home/jovyan# wget google.com
+--2023-03-27 12:20:00--  http://google.com/
+Resolving google.com (google.com)... 142.251.215.238, 2607:f8b0:400a:800::200e
+Connecting to google.com (google.com)|142.251.215.238|:80... connected.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: http://www.google.com/ [following]
+--2023-03-27 12:20:01--  http://www.google.com/
+Resolving www.google.com (www.google.com)... 142.250.69.196, 2607:f8b0:400a:805::2004
+Connecting to www.google.com (www.google.com)|142.250.69.196|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/html]
+Saving to: ‘index.html.2’
+
+index.html.2                       [ <=>                                               ]  14.23K  --.-KB/s    in 0s      
+
+2023-03-27 12:20:01 (46.4 MB/s) - ‘index.html.2’ saved [14572]
+
+root@h1:/home/jovyan# 
+
 1) I learned about ARP data packets and how the routers interact using r-net1 & 2. Learned more about the mac addresses and how each of them interchange within different frames. The output on h1 tells me about the mac address for google.com as well as the status of my request of getting the file. 
 
+root@r:/home/jovyan# iptables -t nat -A POSTROUTING -o r-eth2 -j MASQUERADE
+root@r:/home/jovyan# tcpdump -n -l -vvv -e -i r-eth0
+tcpdump: listening on r-eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+12:19:53.983595 e2:27:99:4a:bc:73 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::e027:99ff:fe4a:bc73 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): e2:27:99:4a:bc:73
+            0x0000:  e227 994a bc73
+12:19:56.799683 3e:5b:5c:09:10:ac > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::3c5b:5cff:fe09:10ac > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 3e:5b:5c:09:10:ac
+            0x0000:  3e5b 5c09 10ac
+12:20:00.620065 3e:5b:5c:09:10:ac > ff:ff:ff:ff:ff:ff, ethertype ARP (0x0806), length 42: Ethernet (len 6), IPv4 (len 4), Request who-has 192.168.1.1 tell 192.168.1.100, length 28
+12:20:00.620108 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype ARP (0x0806), length 42: Ethernet (len 6), IPv4 (len 4), Reply 192.168.1.1 is-at e2:27:99:4a:bc:73, length 28
+12:20:00.620116 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 70: (tos 0x0, ttl 64, id 65169, offset 0, flags [DF], proto UDP (17), length 56)
+    192.168.1.100.45854 > 172.16.1.1.53: [udp sum ok] 44399+ A? google.com. (28)
+12:20:00.622335 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 70: (tos 0x0, ttl 64, id 65170, offset 0, flags [DF], proto UDP (17), length 56)
+    192.168.1.100.45854 > 172.16.1.1.53: [udp sum ok] 3406+ AAAA? google.com. (28)
+12:20:01.515291 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 98: (tos 0x0, ttl 64, id 32748, offset 0, flags [DF], proto UDP (17), length 84)
+    172.16.1.1.53 > 192.168.1.100.45854: [udp sum ok] 3406 q: AAAA? google.com. 1/0/0 google.com. [5m] AAAA 2607:f8b0:400a:800::200e (56)
+12:20:01.515338 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 86: (tos 0x0, ttl 64, id 32749, offset 0, flags [DF], proto UDP (17), length 72)
+    172.16.1.1.53 > 192.168.1.100.45854: [udp sum ok] 44399 q: A? google.com. 1/0/0 google.com. [5m] A 142.251.215.238 (44)
+12:20:01.515872 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 38617, offset 0, flags [DF], proto TCP (6), length 60)
+    192.168.1.100.48526 > 142.251.215.238.80: Flags [S], cksum 0xb4a2 (correct), seq 1809131416, win 64240, options [mss 1460,sackOK,TS val 1689565557 ecr 0,nop,wscale 7], length 0
+12:20:01.518974 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 115, id 0, offset 0, flags [DF], proto TCP (6), length 60)
+    142.251.215.238.80 > 192.168.1.100.48526: Flags [S.], cksum 0xe75d (correct), seq 223757864, ack 1809131417, win 65535, options [mss 1380,sackOK,TS val 3925379836 ecr 1689565557,nop,wscale 8], length 0
+12:20:01.519004 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 38618, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.48526 > 142.251.215.238.80: Flags [.], cksum 0x13e1 (correct), seq 1, ack 1, win 502, options [nop,nop,TS val 1689565561 ecr 3925379836], length 0
+12:20:01.519281 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 203: (tos 0x0, ttl 64, id 38619, offset 0, flags [DF], proto TCP (6), length 189)
+    192.168.1.100.48526 > 142.251.215.238.80: Flags [P.], cksum 0x3d74 (correct), seq 1:138, ack 1, win 502, options [nop,nop,TS val 1689565561 ecr 3925379836], length 137: HTTP, length: 137
+        GET / HTTP/1.1
+        User-Agent: Wget/1.20.3 (linux-gnu)
+        Accept: */*
+        Accept-Encoding: identity
+        Host: google.com
+        Connection: Keep-Alive
+
+12:20:01.523224 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 115, id 18682, offset 0, flags [none], proto TCP (6), length 52)
+    142.251.215.238.80 > 192.168.1.100.48526: Flags [.], cksum 0x1445 (correct), seq 1, ack 138, win 261, options [nop,nop,TS val 3925379840 ecr 1689565561], length 0
+12:20:01.599274 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 839: (tos 0x0, ttl 115, id 18683, offset 0, flags [none], proto TCP (6), length 825)
+    142.251.215.238.80 > 192.168.1.100.48526: Flags [P.], cksum 0x7ef9 (correct), seq 1:774, ack 138, win 261, options [nop,nop,TS val 3925379916 ecr 1689565561], length 773: HTTP, length: 773
+        HTTP/1.1 301 Moved Permanently
+        Location: http://www.google.com/
+        Content-Type: text/html; charset=UTF-8
+        Content-Security-Policy-Report-Only: object-src 'none';base-uri 'self';script-src 'nonce-5Pph3JBQWh6Gi51MTx3MPQ' 'strict-dynamic' 'report-sample' 'unsafe-eval' 'unsafe-inline' https: http:;report-uri https://csp.withgoogle.com/csp/gws/other-hp
+        Date: Mon, 27 Mar 2023 19:20:01 GMT
+        Expires: Wed, 26 Apr 2023 19:20:01 GMT
+        Cache-Control: public, max-age=2592000
+        Server: gws
+        Content-Length: 219
+        X-XSS-Protection: 0
+        X-Frame-Options: SAMEORIGIN
+
+        <HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
+        <TITLE>301 Moved</TITLE></HEAD><BODY>
+        <H1>301 Moved</H1>
+        The document has moved
+        <A HREF="http://www.google.com/">here</A>.
+        </BODY></HTML>
+12:20:01.599296 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 38620, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.48526 > 142.251.215.238.80: Flags [.], cksum 0x0fb4 (correct), seq 138, ack 774, win 501, options [nop,nop,TS val 1689565641 ecr 3925379916], length 0
+12:20:01.604665 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 30284, offset 0, flags [DF], proto UDP (17), length 60)
+    192.168.1.100.41940 > 172.16.1.1.53: [udp sum ok] 54257+ A? www.google.com. (32)
+12:20:01.604723 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 30285, offset 0, flags [DF], proto UDP (17), length 60)
+    192.168.1.100.41940 > 172.16.1.1.53: [udp sum ok] 21493+ AAAA? www.google.com. (32)
+12:20:01.636557 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 90: (tos 0x0, ttl 64, id 32760, offset 0, flags [DF], proto UDP (17), length 76)
+    172.16.1.1.53 > 192.168.1.100.41940: [udp sum ok] 54257 q: A? www.google.com. 1/0/0 www.google.com. [5m] A 142.250.69.196 (48)
+12:20:01.637322 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 102: (tos 0x0, ttl 64, id 32761, offset 0, flags [DF], proto UDP (17), length 88)
+    172.16.1.1.53 > 192.168.1.100.41940: [udp sum ok] 21493 q: AAAA? www.google.com. 1/0/0 www.google.com. [5m] AAAA 2607:f8b0:400a:805::2004 (60)
+12:20:01.637928 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 52998, offset 0, flags [DF], proto TCP (6), length 60)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [S], cksum 0x1732 (correct), seq 1388304116, win 64240, options [mss 1460,sackOK,TS val 2537628608 ecr 0,nop,wscale 7], length 0
+12:20:01.641300 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 115, id 0, offset 0, flags [DF], proto TCP (6), length 60)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [S.], cksum 0x4462 (correct), seq 1777339255, ack 1388304117, win 65535, options [mss 1380,sackOK,TS val 2907614024 ecr 2537628608,nop,wscale 8], length 0
+12:20:01.641372 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 52999, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x70e6 (correct), seq 1, ack 1, win 502, options [nop,nop,TS val 2537628611 ecr 2907614024], length 0
+12:20:01.641834 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 207: (tos 0x0, ttl 64, id 53000, offset 0, flags [DF], proto TCP (6), length 193)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [P.], cksum 0xf486 (correct), seq 1:142, ack 1, win 502, options [nop,nop,TS val 2537628611 ecr 2907614024], length 141: HTTP, length: 141
+        GET / HTTP/1.1
+        User-Agent: Wget/1.20.3 (linux-gnu)
+        Accept: */*
+        Accept-Encoding: identity
+        Host: www.google.com
+        Connection: Keep-Alive
+
+12:20:01.646169 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 115, id 36486, offset 0, flags [none], proto TCP (6), length 52)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0x7145 (correct), seq 1, ack 142, win 261, options [nop,nop,TS val 2907614029 ecr 2537628611], length 0
+12:20:01.702090 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36487, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0xf00a (correct), seq 1:1369, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP, length: 1368
+        HTTP/1.1 200 OK
+        Date: Mon, 27 Mar 2023 19:20:01 GMT
+        Expires: -1
+        Cache-Control: private, max-age=0
+        Content-Type: text/html; charset=ISO-8859-1
+        Content-Security-Policy-Report-Only: object-src 'none';base-uri 'self';script-src 'nonce-rfOl-V69TbnnNj4vkI8gkg' 'strict-dynamic' 'report-sample' 'unsafe-eval' 'unsafe-inline' https: http:;report-uri https://csp.withgoogle.com/csp/gws/other-hp
+        P3P: CP="This is not a P3P policy! See g.co/p3phelp for more info."
+        Server: gws
+        X-XSS-Protection: 0
+        X-Frame-Options: SAMEORIGIN
+        Set-Cookie: 1P_JAR=2023-03-27-19; expires=Wed, 26-Apr-2023 19:20:01 GMT; path=/; domain=.google.com; Secure
+        Set-Cookie: AEC=AUEFqZcQx2yQD9qGGFKu9HgVyx-nU82vTSjm0fOTOvkjhF-b2WgwM_rVppY; expires=Sat, 23-Sep-2023 19:20:01 GMT; path=/; domain=.google.com; Secure; HttpOnly; SameSite=lax
+        Set-Cookie: NID=511=ADkTgeFO6UNsozCsuYv2Oul_juK07LjUedWZs06YiE0uhGI7WD2_sB5ptBopWLoJa9CgyUlHcuXLPEFs0emV3KhsntxSLosGE7weDYkDC9uxBoNRQA2Kw5v3shf96b4vggvhuWl0mxt6mgk-J9dpPKjn9M4lAGSowosNEHFsR6A; expires=Tue, 26-Sep-2023 19:20:01 GMT; path=/; domain=.google.com; HttpOnly
+        Accept-Ranges: none
+        Vary: Accept-Encoding
+        Transfer-Encoding: chunked
+
+        38ec
+        <!doctype html><html itemscope="" itemtype="http://schema.org/WebPage" lang="en-CA"><head><meta content="text/html; charset=UTF-8" http-equiv="Content-Type"><meta content="/images/branding/googleg/1x/googleg_s[!http]
+12:20:01.702120 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36488, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0xa917 (correct), seq 1369:2737, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702122 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36489, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0xd321 (correct), seq 2737:4105, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702124 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36490, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0x9351 (correct), seq 4105:5473, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702126 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36491, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [P.], cksum 0x4a0b (correct), seq 5473:6841, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702133 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36492, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0x511a (correct), seq 6841:8209, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702144 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36493, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0xaaa7 (correct), seq 8209:9577, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702146 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36494, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0xa108 (correct), seq 9577:10945, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702148 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36495, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0xe404 (correct), seq 10945:12313, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702149 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36496, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [P.], cksum 0x0696 (correct), seq 12313:13681, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702168 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53001, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x6a8b (correct), seq 142, ack 1369, win 501, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702184 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53002, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x6535 (correct), seq 142, ack 2737, win 499, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702189 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53003, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x5fe3 (correct), seq 142, ack 4105, win 493, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702193 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53004, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x5a90 (correct), seq 142, ack 5473, win 488, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702198 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53005, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x553d (correct), seq 142, ack 6841, win 483, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702202 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53006, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x4feb (correct), seq 142, ack 8209, win 477, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702207 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53007, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x4a99 (correct), seq 142, ack 9577, win 471, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702212 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53008, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x4546 (correct), seq 142, ack 10945, win 466, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702215 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53009, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x3ff3 (correct), seq 142, ack 12313, win 461, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702218 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53010, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x3aa1 (correct), seq 142, ack 13681, win 455, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.703740 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 38621, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.48526 > 142.251.215.238.80: Flags [F.], cksum 0x0f4b (correct), seq 138, ack 774, win 501, options [nop,nop,TS val 1689565745 ecr 3925379916], length 0
+12:20:01.705610 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 115, id 36497, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [.], cksum 0x0c3e (correct), seq 13681:15049, ack 142, win 261, options [nop,nop,TS val 2907614088 ecr 2537628672], length 1368: HTTP
+12:20:01.705630 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 756: (tos 0x0, ttl 115, id 36498, offset 0, flags [none], proto TCP (6), length 742)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [P.], cksum 0xd2bb (correct), seq 15049:15739, ack 142, win 261, options [nop,nop,TS val 2907614088 ecr 2537628672], length 690: HTTP
+12:20:01.705648 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53011, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x3545 (correct), seq 142, ack 15049, win 450, options [nop,nop,TS val 2537628675 ecr 2907614088], length 0
+12:20:01.705655 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53012, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x3296 (correct), seq 142, ack 15739, win 447, options [nop,nop,TS val 2537628675 ecr 2907614088], length 0
+12:20:01.706511 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 115, id 18684, offset 0, flags [none], proto TCP (6), length 52)
+    142.251.215.238.80 > 192.168.1.100.48526: Flags [F.], cksum 0x0fce (correct), seq 774, ack 139, win 261, options [nop,nop,TS val 3925380024 ecr 1689565745], length 0
+12:20:01.706545 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 38622, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.48526 > 142.251.215.238.80: Flags [.], cksum 0x0edb (correct), seq 139, ack 775, win 501, options [nop,nop,TS val 1689565748 ecr 3925380024], length 0
+12:20:01.713109 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53013, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [F.], cksum 0x3257 (correct), seq 142, ack 15739, win 501, options [nop,nop,TS val 2537628683 ecr 2907614088], length 0
+12:20:01.723395 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 115, id 36499, offset 0, flags [none], proto TCP (6), length 52)
+    142.250.69.196.80 > 192.168.1.100.47628: Flags [F.], cksum 0x3334 (correct), seq 15739, ack 143, win 261, options [nop,nop,TS val 2907614106 ecr 2537628683], length 0
+12:20:01.723455 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 53014, offset 0, flags [DF], proto TCP (6), length 52)
+    192.168.1.100.47628 > 142.250.69.196.80: Flags [.], cksum 0x323a (correct), seq 143, ack 15740, win 501, options [nop,nop,TS val 2537628693 ecr 2907614106], length 0
+12:20:06.527636 e2:27:99:4a:bc:73 > 3e:5b:5c:09:10:ac, ethertype ARP (0x0806), length 42: Ethernet (len 6), IPv4 (len 4), Request who-has 192.168.1.100 tell 192.168.1.1, length 28
+12:20:06.527718 3e:5b:5c:09:10:ac > e2:27:99:4a:bc:73, ethertype ARP (0x0806), length 42: Ethernet (len 6), IPv4 (len 4), Reply 192.168.1.100 is-at 3e:5b:5c:09:10:ac, length 28
+12:20:25.471860 e2:27:99:4a:bc:73 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::e027:99ff:fe4a:bc73 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): e2:27:99:4a:bc:73
+            0x0000:  e227 994a bc73
+12:20:31.615823 3e:5b:5c:09:10:ac > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::3c5b:5cff:fe09:10ac > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 3e:5b:5c:09:10:ac
+            0x0000:  3e5b 5c09 10ac
+12:21:31.007653 e2:27:99:4a:bc:73 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::e027:99ff:fe4a:bc73 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): e2:27:99:4a:bc:73
+            0x0000:  e227 994a bc73
+12:21:41.247641 3e:5b:5c:09:10:ac > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::3c5b:5cff:fe09:10ac > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 3e:5b:5c:09:10:ac
+            0x0000:  3e5b 5c09 10ac
+12:23:54.367716 e2:27:99:4a:bc:73 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::e027:99ff:fe4a:bc73 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): e2:27:99:4a:bc:73
+            0x0000:  e227 994a bc73
+12:24:10.751612 3e:5b:5c:09:10:ac > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::3c5b:5cff:fe09:10ac > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 3e:5b:5c:09:10:ac
+            0x0000:  3e5b 5c09 10ac
+12:28:32.895650 e2:27:99:4a:bc:73 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::e027:99ff:fe4a:bc73 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): e2:27:99:4a:bc:73
+            0x0000:  e227 994a bc73
+
+
 2) with the stuff from the lab, I am able to identify the different frames as well as. Lines like "Request who-has 192.168.1.1 tell 192.168.1.100, length 28" are particularly interesting although i dont understand 100% what its telling us. 
+
+(base) jovyan@piconet:~$ sudo tcpdump -n -l -vvv -e -i host-nat
+tcpdump: listening on host-nat, link-type EN10MB (Ethernet), capture size 262144 bytes
+12:20:00.622868 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 88: (tos 0x0, ttl 64, id 23617, offset 0, flags [none], proto UDP (17), length 74)
+    172.16.1.1.48539 > 198.97.190.53.53: [udp sum ok] 28017 [1au] A? _.com. ar: . OPT UDPsize=512 DO (46)
+12:20:00.655375 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 300: (tos 0x0, ttl 48, id 11781, offset 0, flags [none], proto UDP (17), length 286)
+    198.97.190.53.53 > 172.16.1.1.48539: [udp sum ok] 28017-| q: A? _.com. 0/13/1 ns: com. [2d] NS a.gtld-servers.net., com. [2d] NS b.gtld-servers.net., com. [2d] NS c.gtld-servers.net., com. [2d] NS d.gtld-servers.net., com. [2d] NS e.gtld-servers.net., com. [2d] NS f.gtld-servers.net., com. [2d] NS g.gtld-servers.net., com. [2d] NS h.gtld-servers.net., com. [2d] NS i.gtld-servers.net., com. [2d] NS j.gtld-servers.net., com. [2d] NS k.gtld-servers.net., com. [2d] NS l.gtld-servers.net., com. [2d] NS m.gtld-servers.net. ar: . OPT UDPsize=1232 DO (258)
+12:20:00.656032 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 23652, offset 0, flags [DF], proto TCP (6), length 60)
+    172.16.1.1.37165 > 198.97.190.53.53: Flags [S], cksum 0x8601 (correct), seq 3169215650, win 64240, options [mss 1460,sackOK,TS val 1379897402 ecr 0,nop,wscale 7], length 0
+12:20:00.712083 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 62: (tos 0x0, ttl 48, id 0, offset 0, flags [DF], proto TCP (6), length 48)
+    198.97.190.53.53 > 172.16.1.1.37165: Flags [S.], cksum 0xf119 (correct), seq 1287085117, ack 3169215651, win 1460, options [mss 1380,nop,wscale 8], length 0
+12:20:00.712164 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 54: (tos 0x0, ttl 64, id 23653, offset 0, flags [DF], proto TCP (6), length 40)
+    172.16.1.1.37165 > 198.97.190.53.53: Flags [.], cksum 0x2054 (correct), seq 1, ack 1, win 502, length 0
+12:20:00.712407 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 102: (tos 0x0, ttl 64, id 23654, offset 0, flags [DF], proto TCP (6), length 88)
+    172.16.1.1.37165 > 198.97.190.53.53: Flags [P.], cksum 0xee8c (correct), seq 1:49, ack 1, win 502, length 48 29042 [1au] A? _.com. ar: . OPT UDPsize=4096 DO (46)
+12:20:00.743655 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 54: (tos 0x0, ttl 48, id 51270, offset 0, flags [DF], proto TCP (6), length 40)
+    198.97.190.53.53 > 172.16.1.1.37165: Flags [.], cksum 0x2214 (correct), seq 1, ack 49, win 6, length 0
+12:20:00.766837 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 1221: (tos 0x0, ttl 48, id 51271, offset 0, flags [DF], proto TCP (6), length 1207)
+    198.97.190.53.53 > 172.16.1.1.37165: Flags [P.], cksum 0x93ed (correct), seq 1:1168, ack 49, win 6, length 1167 29042- q: A? _.com. 0/15/27 ns: com. [2d] NS a.gtld-servers.net., com. [2d] NS b.gtld-servers.net., com. [2d] NS c.gtld-servers.net., com. [2d] NS d.gtld-servers.net., com. [2d] NS e.gtld-servers.net., com. [2d] NS f.gtld-servers.net., com. [2d] NS g.gtld-servers.net., com. [2d] NS h.gtld-servers.net., com. [2d] NS i.gtld-servers.net., com. [2d] NS j.gtld-servers.net., com. [2d] NS k.gtld-servers.net., com. [2d] NS l.gtld-servers.net., com. [2d] NS m.gtld-servers.net., com. [1d] DS, com. [1d] RRSIG ar: a.gtld-servers.net. [2d] A 192.5.6.30, b.gtld-servers.net. [2d] A 192.33.14.30, c.gtld-servers.net. [2d] A 192.26.92.30, d.gtld-servers.net. [2d] A 192.31.80.30, e.gtld-servers.net. [2d] A 192.12.94.30, f.gtld-servers.net. [2d] A 192.35.51.30, g.gtld-servers.net. [2d] A 192.42.93.30, h.gtld-servers.net. [2d] A 192.54.112.30, i.gtld-servers.net. [2d] A 192.43.172.30, j.gtld-servers.net. [2d] A 192.48.79.30, k.gtld-servers.net. [2d] A 192.52.178.30, l.gtld-servers.net. [2d] A 192.41.162.30, m.gtld-servers.net. [2d] A 192.55.83.30, a.gtld-servers.net. [2d] AAAA 2001:503:a83e::2:30, b.gtld-servers.net. [2d] AAAA 2001:503:231d::2:30, c.gtld-servers.net. [2d] AAAA 2001:503:83eb::30, d.gtld-servers.net. [2d] AAAA 2001:500:856e::30, e.gtld-servers.net. [2d] AAAA 2001:502:1ca1::30, f.gtld-servers.net. [2d] AAAA 2001:503:d414::30, g.gtld-servers.net. [2d] AAAA 2001:503:eea3::30, h.gtld-servers.net. [2d] AAAA 2001:502:8cc::30, i.gtld-servers.net. [2d] AAAA 2001:503:39c1::30, j.gtld-servers.net. [2d] AAAA 2001:502:7094::30, k.gtld-servers.net. [2d] AAAA 2001:503:d2d::30, l.gtld-servers.net. [2d] AAAA 2001:500:d937::30, m.gtld-servers.net. [2d] AAAA 2001:501:b1f9::30, . OPT UDPsize=1232 DO (1165)
+12:20:00.766874 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 54: (tos 0x0, ttl 64, id 23655, offset 0, flags [DF], proto TCP (6), length 40)
+    172.16.1.1.37165 > 198.97.190.53.53: Flags [.], cksum 0x1b96 (correct), seq 49, ack 1168, win 501, length 0
+12:20:00.767350 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 54: (tos 0x0, ttl 64, id 23656, offset 0, flags [DF], proto TCP (6), length 40)
+    172.16.1.1.37165 > 198.97.190.53.53: Flags [F.], cksum 0x1b95 (correct), seq 49, ack 1168, win 501, length 0
+12:20:00.771748 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 93: (tos 0x0, ttl 64, id 37749, offset 0, flags [none], proto UDP (17), length 79)
+    172.16.1.1.42896 > 192.48.79.30.53: [udp sum ok] 12242 [1au] A? google.com. ar: . OPT UDPsize=512 DO (51)
+12:20:00.772089 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 93: (tos 0x0, ttl 64, id 43586, offset 0, flags [none], proto UDP (17), length 79)
+    172.16.1.1.56896 > 192.48.79.30.53: [udp sum ok] 33140 [1au] AAAA? google.com. ar: . OPT UDPsize=512 DO (51)
+12:20:00.802026 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 54: (tos 0x0, ttl 48, id 51272, offset 0, flags [DF], proto TCP (6), length 40)
+    198.97.190.53.53 > 172.16.1.1.37165: Flags [F.], cksum 0x1d83 (correct), seq 1168, ack 50, win 6, length 0
+12:20:00.802065 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 54: (tos 0x0, ttl 64, id 23657, offset 0, flags [DF], proto TCP (6), length 40)
+    172.16.1.1.37165 > 198.97.190.53.53: Flags [.], cksum 0x1b94 (correct), seq 50, ack 1169, win 501, length 0
+12:20:00.818928 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 535: (tos 0x0, ttl 49, id 48446, offset 0, flags [none], proto UDP (17), length 521)
+    192.48.79.30.53 > 172.16.1.1.56896: [udp sum ok] 33140-| q: AAAA? google.com. 0/7/2 ns: google.com. [2d] NS ns2.google.com., google.com. [2d] NS ns1.google.com., google.com. [2d] NS ns3.google.com., google.com. [2d] NS ns4.google.com., CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] Type50, CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] RRSIG, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] Type50 ar: ns2.google.com. [2d] AAAA 2001:4860:4802:34::a, . OPT UDPsize=4096 DO (493)
+12:20:00.819926 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 25196, offset 0, flags [DF], proto TCP (6), length 60)
+    172.16.1.1.56977 > 192.48.79.30.53: Flags [S], cksum 0xb61b (correct), seq 943426582, win 64240, options [mss 1460,sackOK,TS val 2843905528 ecr 0,nop,wscale 7], length 0
+12:20:00.830271 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 535: (tos 0x0, ttl 48, id 57016, offset 0, flags [none], proto UDP (17), length 521)
+    192.48.79.30.53 > 172.16.1.1.42896: [udp sum ok] 12242-| q: A? google.com. 0/7/2 ns: google.com. [2d] NS ns2.google.com., google.com. [2d] NS ns1.google.com., google.com. [2d] NS ns3.google.com., google.com. [2d] NS ns4.google.com., CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] Type50, CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] RRSIG, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] Type50 ar: ns2.google.com. [2d] AAAA 2001:4860:4802:34::a, . OPT UDPsize=4096 DO (493)
+12:20:00.830711 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 23378, offset 0, flags [DF], proto TCP (6), length 60)
+    172.16.1.1.35811 > 192.48.79.30.53: Flags [S], cksum 0xc68e (correct), seq 4126740617, win 64240, options [mss 1460,sackOK,TS val 2843905538 ecr 0,nop,wscale 7], length 0
+12:20:00.905393 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 70: (tos 0x0, ttl 49, id 65286, offset 0, flags [none], proto TCP (6), length 56)
+    192.48.79.30.53 > 172.16.1.1.56977: Flags [S.], cksum 0xd054 (correct), seq 3192751144, ack 943426583, win 1400, options [mss 1380,nop,nop,TS val 3003120919 ecr 2843905528], length 0
+12:20:00.905443 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 25197, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.56977 > 192.48.79.30.53: Flags [.], cksum 0xf1f3 (correct), seq 1, ack 1, win 64240, options [nop,nop,TS val 2843905613 ecr 3003120919], length 0
+12:20:00.905958 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 119: (tos 0x0, ttl 64, id 25198, offset 0, flags [DF], proto TCP (6), length 105)
+    172.16.1.1.56977 > 192.48.79.30.53: Flags [P.], cksum 0x001b (correct), seq 1:54, ack 1, win 64240, options [nop,nop,TS val 2843905614 ecr 3003120919], length 53 48854 [1au] AAAA? google.com. ar: . OPT UDPsize=4096 DO (51)
+12:20:00.928179 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 70: (tos 0x0, ttl 48, id 29454, offset 0, flags [none], proto TCP (6), length 56)
+    192.48.79.30.53 > 172.16.1.1.35811: Flags [S.], cksum 0x1b29 (correct), seq 1212349443, ack 4126740618, win 1400, options [mss 1380,nop,nop,TS val 3003039975 ecr 2843905538], length 0
+12:20:00.928220 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 23379, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.35811 > 192.48.79.30.53: Flags [.], cksum 0x3cbb (correct), seq 1, ack 1, win 64240, options [nop,nop,TS val 2843905636 ecr 3003039975], length 0
+12:20:00.928629 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 119: (tos 0x0, ttl 64, id 23380, offset 0, flags [DF], proto TCP (6), length 105)
+    172.16.1.1.35811 > 192.48.79.30.53: Flags [P.], cksum 0xf3d7 (correct), seq 1:54, ack 1, win 64240, options [nop,nop,TS val 2843905636 ecr 3003039975], length 53 5629 [1au] A? google.com. ar: . OPT UDPsize=4096 DO (51)
+12:20:00.992220 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 904: (tos 0x0, ttl 49, id 31395, offset 0, flags [none], proto TCP (6), length 890)
+    192.48.79.30.53 > 172.16.1.1.56977: Flags [P.], cksum 0x38f5 (correct), seq 1:839, ack 54, win 1400, options [nop,nop,TS val 3003121005 ecr 2843905614], length 838 48854- q: AAAA? google.com. 0/8/9 ns: google.com. [2d] NS ns2.google.com., google.com. [2d] NS ns1.google.com., google.com. [2d] NS ns3.google.com., google.com. [2d] NS ns4.google.com., CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] Type50, CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] RRSIG, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] Type50, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] RRSIG ar: ns2.google.com. [2d] AAAA 2001:4860:4802:34::a, ns2.google.com. [2d] A 216.239.34.10, ns1.google.com. [2d] AAAA 2001:4860:4802:32::a, ns1.google.com. [2d] A 216.239.32.10, ns3.google.com. [2d] AAAA 2001:4860:4802:36::a, ns3.google.com. [2d] A 216.239.36.10, ns4.google.com. [2d] AAAA 2001:4860:4802:38::a, ns4.google.com. [2d] A 216.239.38.10, . OPT UDPsize=4096 DO (836)
+12:20:00.992258 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 25199, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.56977 > 192.48.79.30.53: Flags [.], cksum 0xeff3 (correct), seq 54, ack 839, win 63688, options [nop,nop,TS val 2843905700 ecr 3003121005], length 0
+12:20:00.992831 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 25200, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.56977 > 192.48.79.30.53: Flags [F.], cksum 0xeff2 (correct), seq 54, ack 839, win 63688, options [nop,nop,TS val 2843905700 ecr 3003121005], length 0
+12:20:00.993712 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 93: (tos 0x0, ttl 64, id 6379, offset 0, flags [none], proto UDP (17), length 79)
+    172.16.1.1.39775 > 216.239.38.10.53: [udp sum ok] 21650 [1au] AAAA? google.com. ar: . OPT UDPsize=512 DO (51)
+12:20:01.025290 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 904: (tos 0x0, ttl 48, id 38874, offset 0, flags [none], proto TCP (6), length 890)
+    192.48.79.30.53 > 172.16.1.1.35811: Flags [P.], cksum 0x2ca6 (correct), seq 1:839, ack 54, win 1400, options [nop,nop,TS val 3003040073 ecr 2843905636], length 838 5629- q: A? google.com. 0/8/9 ns: google.com. [2d] NS ns2.google.com., google.com. [2d] NS ns1.google.com., google.com. [2d] NS ns3.google.com., google.com. [2d] NS ns4.google.com., CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] Type50, CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] RRSIG, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] Type50, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] RRSIG ar: ns2.google.com. [2d] AAAA 2001:4860:4802:34::a, ns2.google.com. [2d] A 216.239.34.10, ns1.google.com. [2d] AAAA 2001:4860:4802:32::a, ns1.google.com. [2d] A 216.239.32.10, ns3.google.com. [2d] AAAA 2001:4860:4802:36::a, ns3.google.com. [2d] A 216.239.36.10, ns4.google.com. [2d] AAAA 2001:4860:4802:38::a, ns4.google.com. [2d] A 216.239.38.10, . OPT UDPsize=4096 DO (836)
+12:20:01.025323 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 23381, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.35811 > 192.48.79.30.53: Flags [.], cksum 0x3aa5 (correct), seq 54, ack 839, win 63688, options [nop,nop,TS val 2843905733 ecr 3003040073], length 0
+12:20:01.025826 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 23382, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.35811 > 192.48.79.30.53: Flags [F.], cksum 0x3aa4 (correct), seq 54, ack 839, win 63688, options [nop,nop,TS val 2843905733 ecr 3003040073], length 0
+12:20:01.026066 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 93: (tos 0x0, ttl 64, id 25848, offset 0, flags [none], proto UDP (17), length 79)
+    172.16.1.1.32855 > 216.239.34.10.53: [udp sum ok] 24773 [1au] A? google.com. ar: . OPT UDPsize=512 DO (51)
+12:20:01.036280 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 97: (tos 0x0, ttl 106, id 5056, offset 0, flags [none], proto UDP (17), length 83)
+    216.239.34.10.53 > 172.16.1.1.32855: [udp sum ok] 24773*- q: A? google.com. 1/0/1 google.com. [5m] A 142.251.215.238 ar: . OPT UDPsize=512 DO (55)
+12:20:01.037345 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 93: (tos 0x0, ttl 64, id 63532, offset 0, flags [none], proto UDP (17), length 79)
+    172.16.1.1.33632 > 192.52.178.30.53: [udp sum ok] 28114 [1au] DS? google.com. ar: . OPT UDPsize=512 DO (51)
+12:20:01.055515 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 109: (tos 0x0, ttl 97, id 38309, offset 0, flags [none], proto UDP (17), length 95)
+    216.239.38.10.53 > 172.16.1.1.39775: [udp sum ok] 21650*- q: AAAA? google.com. 1/0/1 google.com. [5m] AAAA 2607:f8b0:400a:800::200e ar: . OPT UDPsize=512 DO (67)
+12:20:01.074163 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 49, id 2054, offset 0, flags [none], proto TCP (6), length 52)
+    192.48.79.30.53 > 172.16.1.1.56977: Flags [F.], cksum 0xe2eb (correct), seq 839, ack 55, win 1400, options [nop,nop,TS val 3003121092 ecr 2843905700], length 0
+12:20:01.074197 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 25201, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.56977 > 192.48.79.30.53: Flags [.], cksum 0xef48 (correct), seq 55, ack 840, win 63688, options [nop,nop,TS val 2843905782 ecr 3003121092], length 0
+12:20:01.118375 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 48, id 30222, offset 0, flags [none], proto TCP (6), length 52)
+    192.48.79.30.53 > 172.16.1.1.35811: Flags [F.], cksum 0x2d93 (correct), seq 839, ack 55, win 1400, options [nop,nop,TS val 3003040170 ecr 2843905733], length 0
+12:20:01.118408 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 23383, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.35811 > 192.48.79.30.53: Flags [.], cksum 0x39e5 (correct), seq 55, ack 840, win 63688, options [nop,nop,TS val 2843905826 ecr 3003040170], length 0
+12:20:01.131478 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 508: (tos 0x0, ttl 48, id 47384, offset 0, flags [none], proto UDP (17), length 494)
+    192.52.178.30.53 > 172.16.1.1.33632: [udp sum ok] 28114*-| q: DS? google.com. 0/4/1 ns: CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] Type50, CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] RRSIG, com. [15m] SOA a.gtld-servers.net. nstld.verisign-grs.com. 1679944782 1800 900 604800 86400, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] Type50 ar: . OPT UDPsize=4096 DO (466)
+12:20:01.131971 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 65294, offset 0, flags [DF], proto TCP (6), length 60)
+    172.16.1.1.50097 > 192.52.178.30.53: Flags [S], cksum 0xa81a (correct), seq 1084363847, win 64240, options [mss 1460,sackOK,TS val 2540426580 ecr 0,nop,wscale 7], length 0
+12:20:01.210452 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 70: (tos 0x0, ttl 49, id 18705, offset 0, flags [none], proto TCP (6), length 56)
+    192.52.178.30.53 > 172.16.1.1.50097: Flags [S.], cksum 0x0d66 (correct), seq 1694339374, ack 1084363848, win 1400, options [mss 1380,nop,nop,TS val 3003121231 ecr 2540426580], length 0
+12:20:01.210492 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 65295, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.50097 > 192.52.178.30.53: Flags [.], cksum 0x2f0c (correct), seq 1, ack 1, win 64240, options [nop,nop,TS val 2540426658 ecr 3003121231], length 0
+12:20:01.210813 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 119: (tos 0x0, ttl 64, id 65296, offset 0, flags [DF], proto TCP (6), length 105)
+    172.16.1.1.50097 > 192.52.178.30.53: Flags [P.], cksum 0x1a22 (correct), seq 1:54, ack 1, win 64240, options [nop,nop,TS val 2540426658 ecr 3003121231], length 53 60789 [1au] DS? google.com. ar: . OPT UDPsize=4096 DO (51)
+12:20:01.290847 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 924: (tos 0x0, ttl 49, id 25629, offset 0, flags [none], proto TCP (6), length 910)
+    192.52.178.30.53 > 172.16.1.1.50097: Flags [P.], cksum 0x9013 (correct), seq 1:859, ack 54, win 1400, options [nop,nop,TS val 3003121310 ecr 2540426658], length 858 60789*- q: DS? google.com. 0/6/1 ns: CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] Type50, CK0POJMG874LJREF7EFN8430QVIT8BSM.com. [1d] RRSIG, com. [15m] SOA a.gtld-servers.net. nstld.verisign-grs.com. 1679944767 1800 900 604800 86400, com. [15m] RRSIG, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] Type50, S84BKCIBC38P58340AKVNFN5KR9O59QC.com. [1d] RRSIG ar: . OPT UDPsize=4096 DO (856)
+12:20:01.290893 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 65297, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.50097 > 192.52.178.30.53: Flags [.], cksum 0x2dc9 (correct), seq 54, ack 859, win 63492, options [nop,nop,TS val 2540426739 ecr 3003121310], length 0
+12:20:01.291392 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 65298, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.50097 > 192.52.178.30.53: Flags [F.], cksum 0x2dc8 (correct), seq 54, ack 859, win 63492, options [nop,nop,TS val 2540426739 ecr 3003121310], length 0
+12:20:01.292462 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 86: (tos 0x0, ttl 64, id 29613, offset 0, flags [none], proto UDP (17), length 72)
+    172.16.1.1.53475 > 192.41.162.30.53: [udp sum ok] 46706 [1au] DNSKEY? com. ar: . OPT UDPsize=512 DO (44)
+12:20:01.377302 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 49, id 21777, offset 0, flags [none], proto TCP (6), length 52)
+    192.52.178.30.53 > 172.16.1.1.50097: Flags [F.], cksum 0x2002 (correct), seq 859, ack 55, win 1400, options [nop,nop,TS val 3003121392 ecr 2540426739], length 0
+12:20:01.377352 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 65299, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.50097 > 192.52.178.30.53: Flags [.], cksum 0x2d1f (correct), seq 55, ack 860, win 63492, options [nop,nop,TS val 2540426825 ecr 3003121392], length 0
+12:20:01.386548 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 528: (tos 0x0, ttl 48, id 17712, offset 0, flags [none], proto UDP (17), length 514)
+    192.41.162.30.53 > 172.16.1.1.53475: [udp sum ok] 46706*-| q: DNSKEY? com. 2/0/1 com. [1d] DNSKEY, com. [1d] DNSKEY ar: . OPT UDPsize=4096 DO (486)
+12:20:01.386857 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 64, id 24451, offset 0, flags [DF], proto TCP (6), length 60)
+    172.16.1.1.52729 > 192.41.162.30.53: Flags [S], cksum 0x038a (correct), seq 3903184228, win 64240, options [mss 1460,sackOK,TS val 47555357 ecr 0,nop,wscale 7], length 0
+12:20:01.438224 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 70: (tos 0x0, ttl 48, id 33544, offset 0, flags [none], proto TCP (6), length 56)
+    192.41.162.30.53 > 172.16.1.1.52729: Flags [S.], cksum 0xd37c (correct), seq 212368860, ack 3903184229, win 1400, options [mss 1380,nop,nop,TS val 3003121487 ecr 47555357], length 0
+12:20:01.438277 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 24452, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.52729 > 192.41.162.30.53: Flags [.], cksum 0xf53c (correct), seq 1, ack 1, win 64240, options [nop,nop,TS val 47555409 ecr 3003121487], length 0
+12:20:01.438504 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 112: (tos 0x0, ttl 64, id 24453, offset 0, flags [DF], proto TCP (6), length 98)
+    172.16.1.1.52729 > 192.41.162.30.53: Flags [P.], cksum 0x8193 (correct), seq 1:47, ack 1, win 64240, options [nop,nop,TS val 47555409 ecr 3003121487], length 46 20609 [1au] DNSKEY? com. ar: . OPT UDPsize=4096 DO (44)
+12:20:01.513684 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 845: (tos 0x0, ttl 48, id 8862, offset 0, flags [none], proto TCP (6), length 831)
+    192.41.162.30.53 > 172.16.1.1.52729: Flags [P.], cksum 0x4d2c (correct), seq 1:780, ack 47, win 1400, options [nop,nop,TS val 3003121538 ecr 47555409], length 779 20609*- q: DNSKEY? com. 3/0/1 com. [1d] DNSKEY, com. [1d] DNSKEY, com. [1d] RRSIG ar: . OPT UDPsize=4096 DO (777)
+12:20:01.513731 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 24454, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.52729 > 192.41.162.30.53: Flags [.], cksum 0xf2ef (correct), seq 47, ack 780, win 63878, options [nop,nop,TS val 47555484 ecr 3003121538], length 0
+12:20:01.514304 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 24455, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.52729 > 192.41.162.30.53: Flags [F.], cksum 0xf2ed (correct), seq 47, ack 780, win 63878, options [nop,nop,TS val 47555485 ecr 3003121538], length 0
+12:20:01.515918 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 63, id 38617, offset 0, flags [DF], proto TCP (6), length 60)
+    172.16.1.1.48526 > 142.251.215.238.80: Flags [S], cksum 0xc99d (correct), seq 1809131416, win 64240, options [mss 1460,sackOK,TS val 1689565557 ecr 0,nop,wscale 7], length 0
+12:20:01.518940 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 116, id 0, offset 0, flags [DF], proto TCP (6), length 60)
+    142.251.215.238.80 > 172.16.1.1.48526: Flags [S.], cksum 0xfc58 (correct), seq 223757864, ack 1809131417, win 65535, options [mss 1380,sackOK,TS val 3925379836 ecr 1689565557,nop,wscale 8], length 0
+12:20:01.519014 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 38618, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.48526 > 142.251.215.238.80: Flags [.], cksum 0x28dc (correct), seq 1, ack 1, win 502, options [nop,nop,TS val 1689565561 ecr 3925379836], length 0
+12:20:01.519304 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 203: (tos 0x0, ttl 63, id 38619, offset 0, flags [DF], proto TCP (6), length 189)
+    172.16.1.1.48526 > 142.251.215.238.80: Flags [P.], cksum 0x526f (correct), seq 1:138, ack 1, win 502, options [nop,nop,TS val 1689565561 ecr 3925379836], length 137: HTTP, length: 137
+        GET / HTTP/1.1
+        User-Agent: Wget/1.20.3 (linux-gnu)
+        Accept: */*
+        Accept-Encoding: identity
+        Host: google.com
+        Connection: Keep-Alive
+
+12:20:01.523188 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 116, id 18682, offset 0, flags [none], proto TCP (6), length 52)
+    142.251.215.238.80 > 172.16.1.1.48526: Flags [.], cksum 0x2940 (correct), seq 1, ack 138, win 261, options [nop,nop,TS val 3925379840 ecr 1689565561], length 0
+12:20:01.572363 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 48, id 36360, offset 0, flags [none], proto TCP (6), length 52)
+    192.41.162.30.53 > 172.16.1.1.52729: Flags [F.], cksum 0xe6af (correct), seq 780, ack 48, win 1400, options [nop,nop,TS val 3003121614 ecr 47555485], length 0
+12:20:01.572444 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 64, id 24456, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.52729 > 192.41.162.30.53: Flags [.], cksum 0xf266 (correct), seq 48, ack 781, win 63878, options [nop,nop,TS val 47555543 ecr 3003121614], length 0
+12:20:01.599238 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 839: (tos 0x0, ttl 116, id 18683, offset 0, flags [none], proto TCP (6), length 825)
+    142.251.215.238.80 > 172.16.1.1.48526: Flags [P.], cksum 0x93f4 (correct), seq 1:774, ack 138, win 261, options [nop,nop,TS val 3925379916 ecr 1689565561], length 773: HTTP, length: 773
+        HTTP/1.1 301 Moved Permanently
+        Location: http://www.google.com/
+        Content-Type: text/html; charset=UTF-8
+        Content-Security-Policy-Report-Only: object-src 'none';base-uri 'self';script-src 'nonce-5Pph3JBQWh6Gi51MTx3MPQ' 'strict-dynamic' 'report-sample' 'unsafe-eval' 'unsafe-inline' https: http:;report-uri https://csp.withgoogle.com/csp/gws/other-hp
+        Date: Mon, 27 Mar 2023 19:20:01 GMT
+        Expires: Wed, 26 Apr 2023 19:20:01 GMT
+        Cache-Control: public, max-age=2592000
+        Server: gws
+        Content-Length: 219
+        X-XSS-Protection: 0
+        X-Frame-Options: SAMEORIGIN
+
+        <HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
+        <TITLE>301 Moved</TITLE></HEAD><BODY>
+        <H1>301 Moved</H1>
+        The document has moved
+        <A HREF="http://www.google.com/">here</A>.
+        </BODY></HTML>
+12:20:01.599307 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 38620, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.48526 > 142.251.215.238.80: Flags [.], cksum 0x24af (correct), seq 138, ack 774, win 501, options [nop,nop,TS val 1689565641 ecr 3925379916], length 0
+12:20:01.605949 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 97: (tos 0x0, ttl 64, id 20946, offset 0, flags [none], proto UDP (17), length 83)
+    172.16.1.1.43554 > 216.239.32.10.53: [udp sum ok] 25107 [1au] A? www.google.com. ar: . OPT UDPsize=512 DO (55)
+12:20:01.606438 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 97: (tos 0x0, ttl 64, id 11359, offset 0, flags [none], proto UDP (17), length 83)
+    172.16.1.1.58511 > 216.239.32.10.53: [udp sum ok] 34610 [1au] AAAA? www.google.com. ar: . OPT UDPsize=512 DO (55)
+12:20:01.635979 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 101: (tos 0x0, ttl 116, id 46699, offset 0, flags [none], proto UDP (17), length 87)
+    216.239.32.10.53 > 172.16.1.1.43554: [udp sum ok] 25107*- q: A? www.google.com. 1/0/1 www.google.com. [5m] A 142.250.69.196 ar: . OPT UDPsize=512 DO (59)
+12:20:01.636779 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 113: (tos 0x0, ttl 116, id 3636, offset 0, flags [none], proto UDP (17), length 99)
+    216.239.32.10.53 > 172.16.1.1.58511: [udp sum ok] 34610*- q: AAAA? www.google.com. 1/0/1 www.google.com. [5m] AAAA 2607:f8b0:400a:805::2004 ar: . OPT UDPsize=512 DO (71)
+12:20:01.637964 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 63, id 52998, offset 0, flags [DF], proto TCP (6), length 60)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [S], cksum 0x2c2d (correct), seq 1388304116, win 64240, options [mss 1460,sackOK,TS val 2537628608 ecr 0,nop,wscale 7], length 0
+12:20:01.641276 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 74: (tos 0x0, ttl 116, id 0, offset 0, flags [DF], proto TCP (6), length 60)
+    142.250.69.196.80 > 172.16.1.1.47628: Flags [S.], cksum 0x595d (correct), seq 1777339255, ack 1388304117, win 65535, options [mss 1380,sackOK,TS val 2907614024 ecr 2537628608,nop,wscale 8], length 0
+12:20:01.641386 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 52999, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x85e1 (correct), seq 1, ack 1, win 502, options [nop,nop,TS val 2537628611 ecr 2907614024], length 0
+12:20:01.641874 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 207: (tos 0x0, ttl 63, id 53000, offset 0, flags [DF], proto TCP (6), length 193)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [P.], cksum 0x0982 (correct), seq 1:142, ack 1, win 502, options [nop,nop,TS val 2537628611 ecr 2907614024], length 141: HTTP, length: 141
+        GET / HTTP/1.1
+        User-Agent: Wget/1.20.3 (linux-gnu)
+        Accept: */*
+        Accept-Encoding: identity
+        Host: www.google.com
+        Connection: Keep-Alive
+
+12:20:01.646128 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 116, id 36486, offset 0, flags [none], proto TCP (6), length 52)
+    142.250.69.196.80 > 172.16.1.1.47628: Flags [.], cksum 0x8640 (correct), seq 1, ack 142, win 261, options [nop,nop,TS val 2907614029 ecr 2537628611], length 0
+12:20:01.702033 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 6906: (tos 0x0, ttl 116, id 36487, offset 0, flags [none], proto TCP (6), length 6892)
+    142.250.69.196.80 > 172.16.1.1.47628: Flags [P.], cksum 0x9cae (incorrect -> 0xcfca), seq 1:6841, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 6840: HTTP, length: 6840
+        HTTP/1.1 200 OK
+        Date: Mon, 27 Mar 2023 19:20:01 GMT
+        Expires: -1
+        Cache-Control: private, max-age=0
+        Content-Type: text/html; charset=ISO-8859-1
+        Content-Security-Policy-Report-Only: object-src 'none';base-uri 'self';script-src 'nonce-rfOl-V69TbnnNj4vkI8gkg' 'strict-dynamic' 'report-sample' 'unsafe-eval' 'unsafe-inline' https: http:;report-uri https://csp.withgoogle.com/csp/gws/other-hp
+        P3P: CP="This is not a P3P policy! See g.co/p3phelp for more info."
+        Server: gws
+        X-XSS-Protection: 0
+        X-Frame-Options: SAMEORIGIN
+        Set-Cookie: 1P_JAR=2023-03-27-19; expires=Wed, 26-Apr-2023 19:20:01 GMT; path=/; domain=.google.com; Secure
+        Set-Cookie: AEC=AUEFqZcQx2yQD9qGGFKu9HgVyx-nU82vTSjm0fOTOvkjhF-b2WgwM_rVppY; expires=Sat, 23-Sep-2023 19:20:01 GMT; path=/; domain=.google.com; Secure; HttpOnly; SameSite=lax
+        Set-Cookie: NID=511=ADkTgeFO6UNsozCsuYv2Oul_juK07LjUedWZs06YiE0uhGI7WD2_sB5ptBopWLoJa9CgyUlHcuXLPEFs0emV3KhsntxSLosGE7weDYkDC9uxBoNRQA2Kw5v3shf96b4vggvhuWl0mxt6mgk-J9dpPKjn9M4lAGSowosNEHFsR6A; expires=Tue, 26-Sep-2023 19:20:01 GMT; path=/; domain=.google.com; HttpOnly
+        Accept-Ranges: none
+        Vary: Accept-Encoding
+        Transfer-Encoding: chunked
+
+        38ec
+        <!doctype html><html itemscope="" itemtype="http://schema.org/WebPage" lang="en-CA"><head><meta content="text/html; charset=UTF-8" http-equiv="Content-Type"><meta content="/images/branding/googleg/1x/googleg_standard_color_128dp.png" itemprop="image"><title>Google</title><script nonce="rfOl-V69TbnnNj4vkI8gkg">(function(){window.google={kEI:'YewhZPLxJ-TQ9AOa0LygBA',kEXPI:'0,1359409,6058,207,4804,2316,383,246,5,1129120,1197712,380779,16114,19398,9286,22431,1361,12319,17580,4998,13228,3847,35733,5583,2891,3926,4422,4012,50058,13246,13142,3,576,1014,1,5445,11473,2650,4,1528,2304,42127,13658,13795,7428,5803,2554,4094,7596,1,39047,2,3105,2,14022,2715,23024,6699,31123,4567,6256,23421,1252,5835,14967,4333,7484,445,2,2,1,6959,17667,2006,5665,2490,6682,699,2,15967,873,19634,7,1922,9779,18543,2848,1502,13261,6305,20198,928,19209,14,82,20206,1622,1779,11,4965,8378,4088,2425,4097,4387,988,3030,427,5684,1410,890,7405,1804,6249,1301,184,495,1150,1093,1648,109,1127,450,18537,15,739,536,1636,710,2897,667,1,2754,1561,196,2365,269,393,938,696,1608,222,1611,2049,4,317,2,2135,224,665,2528,1055,2171,396,4938,5,671,285,1445,678,75,273,260,635,14,453,397,222,220,1139,3,482,470,693,2,334,148,39,560,154,447,5,297,338,2,1043,1128,240,105,3,165,755,32,302,165,2,903,324,1142,1162,1,8,16,69,619,265,1199,254,2,197,262,251,2,219,129,1789,815,182,10,952,5220156,298,392,8798451,3311,141,795,19735,2,300,46,4621,1,23,18889446,5056393,553,4041590,1964,14298,2375,2893,6250,12561,1539,1819,588,1414289',kBL:'VEUU',kOPI:89978449};google.sn='webhp';google.kHL='en-CA';})();(function(){
+        var f=this||self;var h,k=[];function l(a){for(var b;a&&(!a.getAttribute||!(b=a.getAttribute("eid")));)a=a.parentNode;return b||h}function m(a){for(var b=null;a&&(!a.getAttribute||!(b=a.getAttribute("leid")));)a=a.parentNode;return b}
+        function n(a,b,c,d,g){var e="";c||-1!==b.search("&ei=")||(e="&ei="+l(d),-1===b.search("&lei=")&&(d=m(d))&&(e+="&lei="+d));d="";!c&&f._cshid&&-1===b.search("&cshid=")&&"slh"!==a&&(d="&cshid="+f._cshid);c=c||"/"+(g||"gen_204")+"?atyp=i&ct="+a+"&cad="+b+e+"&zx="+Date.now()+d;/^http:/i.test(c)&&"https:"===window.location.protocol&&(google.ml&&google.ml(Error("a"),!1,{src:c,glmm:1}),c="");return c};h=google.kEI;google.getEI=l;google.getLEI=m;google.ml=function(){return null};google.log=function(a,b,c,d,g){if(c=n(a,b,c,d,g)){a=new Image;var e=k.length;k[e]=a;a.onerror=a.onload=a.onabort=function(){delete k[e]};a.src=c}};google.logUrl=n;}).call(this);(function(){google.y={};google.sy=[];google.x=function(a,b){if(a)var c=a.id;else{do c=Math.random();while(google.y[c])}google.y[c]=[a,b];return!1};google.sx=function(a){google.sy.push(a)};google.lm=[];google.plm=function(a){google.lm.push.apply(google.lm,a)};google.lq=[];google.load=function(a,b,c){google.lq.push([[a],b,c])};google.loadAll=function(a,b){google.lq.push([a,b])};google.bx=!1;google.lx=function(){};}).call(this);google.f={};(function(){
+        document.documentElement.addEventListener("submit",function(b){var a;if(a=b.target){var c=a.getAttribute("data-submitfalse");a="1"===c||"q"===c&&!a.elements.q.value?!0:!1}else a=!1;a&&(b.preventDefault(),b.stopPropagation())},!0);document.documentElement.addEventListener("click",function(b){var a;a:{for(a=b.target;a&&a!==document.documentElement;a=a.parentElement)if("A"===a.tagName){a="1"===a.getAttribute("data-nohref");break a}a=!1}a&&b.preventDefault()},!0);}).call(this);</script><style>#gbar,#guser{font-size:13px;padding-top:1px !important;}#gbar{height:22px}#guser{padding-bottom:7px !important;text-align:right}.gbh,.gbd{border-top:1px solid #c9d7f1;font-size:1px}.gbh{height:0;position:absolute;top:24px;width:100%}@media all{.gb1{height:22px;margin-right:.5em;vertical-align:top}#gbar{float:left}}a.gb1,a.gb4{text-decoration:underline !important}a.gb1,a.gb4{color:#00c !important}.gbi .gb4{color:#dd8e27 !important}.gbf .gb4{color:#900 !important}
+        </style><style>body,td,a,p,.h{font-family:arial,sans-serif}body{margin:0;overflow-y:scroll}#gog{padding:3px 8px 0}td{line-height:.8em}.gac_m td{line-height:17px}form{margin-bottom:20px}.h{color:#1558d6}em{font-weight:bold;font-style:normal}.lst{height:25px;width:496px}.gsfi,.lst{font:18px arial,sans-serif}.gsfs{font:17px arial,sans-serif}.ds{display:inline-box;display:inline-block;margin:3px 0 4px;margin-left:4px}input{font-family:inherit}body{background:#fff;color:#000}a{color:#4b11a8;text-decoration:none}a:hover,a:active{text-decoration:underline}.fl a{color:#1558d6}a:visited{color:#4b11a8}.sblc{padding-top:5px}.sblc a{display:block;margin:2px 0;margin-left:13px;font-size:11px}.lsbb{background:#f8f9fa;border:solid 1px;border-color:#dadce0 #70757a #70757a #dadce0;height:30px}.lsbb{display:block}#WqQANb a{display:inline-block;margin:0 12px}.lsb{background:url(/images/nav_logo229.png) 0 -261px repeat-x;border:none;color:#000;cursor:pointer;height:30px;margin:0;outline:0;font:15px arial,sans-serif;vertical-align:top}.lsb:active{background:#dadce0}.lst:focus{outline:none}</style><script nonce="rfOl-V69TbnnNj4vkI8gkg">(function(){window.google.erd={jsr:1,bv:1765,de:true};
+        var h=this||self;var k,l=null!=(k=h.mei)?k:1,n,p=null!=(n=h.sdo)?n:!0,q=0,r,t=google.erd,v=t.jsr;google.ml=function(a,b,d,m,e){e=void 0===e?2:e;b&&(r=a&&a.message);if(google.dl)return google.dl(a,e,d),null;if(0>v){window.console&&console.error(a,d);if(-2===v)throw a;b=!1}else b=!a||!a.message||"Error loading script"===a.message||q>=l&&!m?!1:!0;if(!b)return null;q++;d=d||{};b=encodeURIComponent;var c="/gen_204?atyp=i&ei="+b(google.kEI);google.kEXPI&&(c+="&jexpid="+b(google.kEXPI));c+="&srcpg="+b(google.sn)+"&jsr="+b(t.jsr)+"&bver="+b(t.bv);var f=a.lineNumber;void 0!==f&&(c+="&line="+f);var g=
+        a.fileName;g&&(0<g.index[!http]
+12:20:01.702061 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 1434: (tos 0x0, ttl 116, id 36492, offset 0, flags [none], proto TCP (6), length 1420)
+    142.250.69.196.80 > 172.16.1.1.47628: Flags [.], cksum 0x6615 (correct), seq 6841:8209, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 1368: HTTP
+12:20:01.702066 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 5538: (tos 0x0, ttl 116, id 36493, offset 0, flags [none], proto TCP (6), length 5524)
+    142.250.69.196.80 > 172.16.1.1.47628: Flags [P.], cksum 0x9756 (incorrect -> 0x7855), seq 8209:13681, ack 142, win 261, options [nop,nop,TS val 2907614082 ecr 2537628611], length 5472: HTTP
+12:20:01.702230 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53001, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x7f86 (correct), seq 142, ack 1369, win 501, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702235 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53002, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x7a30 (correct), seq 142, ack 2737, win 499, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702238 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53003, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x74de (correct), seq 142, ack 4105, win 493, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702242 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53004, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x6f8b (correct), seq 142, ack 5473, win 488, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702246 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53005, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x6a38 (correct), seq 142, ack 6841, win 483, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702249 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53006, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x64e6 (correct), seq 142, ack 8209, win 477, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702253 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53007, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x5f94 (correct), seq 142, ack 9577, win 471, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702257 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53008, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x5a41 (correct), seq 142, ack 10945, win 466, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702261 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53009, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x54ee (correct), seq 142, ack 12313, win 461, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.702265 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53010, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x4f9c (correct), seq 142, ack 13681, win 455, options [nop,nop,TS val 2537628672 ecr 2907614082], length 0
+12:20:01.703772 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 38621, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.48526 > 142.251.215.238.80: Flags [F.], cksum 0x2446 (correct), seq 138, ack 774, win 501, options [nop,nop,TS val 1689565745 ecr 3925379916], length 0
+12:20:01.705590 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 2124: (tos 0x0, ttl 116, id 36497, offset 0, flags [none], proto TCP (6), length 2110)
+    142.250.69.196.80 > 172.16.1.1.47628: Flags [P.], cksum 0x8a00 (incorrect -> 0xbdef), seq 13681:15739, ack 142, win 261, options [nop,nop,TS val 2907614088 ecr 2537628672], length 2058: HTTP
+12:20:01.705668 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53011, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x4a40 (correct), seq 142, ack 15049, win 450, options [nop,nop,TS val 2537628675 ecr 2907614088], length 0
+12:20:01.705676 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53012, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x4791 (correct), seq 142, ack 15739, win 447, options [nop,nop,TS val 2537628675 ecr 2907614088], length 0
+12:20:01.706497 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 116, id 18684, offset 0, flags [none], proto TCP (6), length 52)
+    142.251.215.238.80 > 172.16.1.1.48526: Flags [F.], cksum 0x24c9 (correct), seq 774, ack 139, win 261, options [nop,nop,TS val 3925380024 ecr 1689565745], length 0
+12:20:01.706576 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 38622, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.48526 > 142.251.215.238.80: Flags [.], cksum 0x23d6 (correct), seq 139, ack 775, win 501, options [nop,nop,TS val 1689565748 ecr 3925380024], length 0
+12:20:01.720272 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53013, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [F.], cksum 0x4752 (correct), seq 142, ack 15739, win 501, options [nop,nop,TS val 2537628683 ecr 2907614088], length 0
+12:20:01.723355 62:da:0b:81:d5:f5 > 32:6c:46:42:fa:d2, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 116, id 36499, offset 0, flags [none], proto TCP (6), length 52)
+    142.250.69.196.80 > 172.16.1.1.47628: Flags [F.], cksum 0x482f (correct), seq 15739, ack 143, win 261, options [nop,nop,TS val 2907614106 ecr 2537628683], length 0
+12:20:01.723487 32:6c:46:42:fa:d2 > 62:da:0b:81:d5:f5, ethertype IPv4 (0x0800), length 66: (tos 0x0, ttl 63, id 53014, offset 0, flags [DF], proto TCP (6), length 52)
+    172.16.1.1.47628 > 142.250.69.196.80: Flags [.], cksum 0x4735 (correct), seq 143, ack 15740, win 501, options [nop,nop,TS val 2537628693 ecr 2907614106], length 0
+12:20:25.471897 32:6c:46:42:fa:d2 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::306c:46ff:fe42:fad2 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 32:6c:46:42:fa:d2
+            0x0000:  326c 4642 fad2
+12:21:26.911635 32:6c:46:42:fa:d2 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::306c:46ff:fe42:fad2 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 32:6c:46:42:fa:d2
+            0x0000:  326c 4642 fad2
+12:23:29.791700 32:6c:46:42:fa:d2 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::306c:46ff:fe42:fad2 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 32:6c:46:42:fa:d2
+            0x0000:  326c 4642 fad2
+12:27:43.743695 32:6c:46:42:fa:d2 > 33:33:00:00:00:02, ethertype IPv6 (0x86dd), length 70: (hlim 255, next-header ICMPv6 (58) payload length: 16) fe80::306c:46ff:fe42:fad2 > ff02::2: [icmp6 sum ok] ICMP6, router solicitation, length 16
+          source link-address option (1), length 8 (1): 32:6c:46:42:fa:d2
+            0x0000:  326c 4642 fad2
 
 3) the biggest difference that jumps out to me is that there are more packets in the tcpdump on juptyer. 
