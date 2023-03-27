@@ -1,0 +1,5 @@
+1) I learned about ARP data packets and how the routers interact using r-net1 & 2. Learned more about the mac addresses and how each of them interchange within different frames. The output on h1 tells me about the mac address for google.com as well as the status of my request of getting the file. 
+
+2) with the stuff from the lab, I am able to identify the different frames as well as. Lines like "Request who-has 192.168.1.1 tell 192.168.1.100, length 28" are particularly interesting although i dont understand 100% what its telling us. 
+
+3) the biggest difference that jumps out to me is that there are more packets in the tcpdump on juptyer. 
