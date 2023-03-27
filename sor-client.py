@@ -23,27 +23,29 @@ ipAddress, UdpPort, bufferSize, payloadLength = processArgs()
 inputFiles, outputFiles = getFileNames()
 
 
-def checkLen():
-    if file_bytes >= 1024:
-        return 1024
-    else:
-        return file_bytes
+# def checkLen():
+#     if file_bytes >= 1024:
+#         return 1024
+#     else:
+#         return file_bytes
 
-def testfile(readfile):
-    if os.path.isfile(readfile):
-        stream = open(readfile, 'rb')
-        binary_content = stream.read()
-        return (binary_content)
-    else:
-        return(False)
+# def testfile(readfile):
+#     if os.path.isfile(readfile):
+#         stream = open(readfile, 'rb')
+#         binary_content = stream.read()
+#         return (binary_content)
+#     else:
+#         return(False)
 
-def writeToFile(str):
-    outputfile.write(str)
+# def writeToFile(str):
+    # outputfile.write(str)
 
     
 
 # kill program
 doneSending = False
+
+'''
 
 # check if file exists and get binary content 
 file_content = testfile(readfile)
@@ -55,16 +57,14 @@ outputfile = open(outputfile, 'a+')
 
 # file_content is the content of the file, len(file_content) is the # of bytes
 if file_content == False:
-    print("ERROR: file not found")
-
-
+'''
 
 # Create a TCP/IP socket
 udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# Bind the socket to the port
-server_address = ('', port)
-udp_sock.bind(server_address)
+# # Bind the socket to the port
+# server_address = ('', port)
+# udp_sock.bind(server_address)
 
 
 
