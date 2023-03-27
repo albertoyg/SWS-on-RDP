@@ -24,24 +24,23 @@ def checkForFile(requestline):
     return (os.path.isfile(filename), filename)
 
 # Create a TCP/IP socket
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setblocking(0)
-# server.settimeout(10)
-serverPort = int(sys.argv[2])
+udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
 # Bind the socket to the port
-server_address = ('', serverPort)
-#print('starting up on {} port {}'.format(*server_address),
-#      file=sys.stderr)
-server.bind(server_address)
+server_address = ('', int(server_udp_port))
+udp_sock.bind(server_address)
+
+
+
 
 # Listen for incoming connections
-server.listen(5)
+udp_sock.listen(5)
 
 # Sockets from which we expect to read
-inputs = [server]
+inputs = [udp_sock]
 
 # Sockets to which we expect to write
-outputs = []
+outputs = [udp_sock]
 
 # Outgoing message queues (socket:Queue)
 message_queues = {}
@@ -53,7 +52,7 @@ request_message = {}
 
 requestLine = []
 curtime = time.strftime("%a %b %d %H:%M:%S %Z %Y", time.localtime())
-ipandport = "{ip}:{port}".format(ip = sys.argv[1], port = serverPort)
+ipandport = "{ip}:{port}".format(ip = sys.argv[1], port = server_udp_port)
 
 timeout = 30
 
@@ -75,7 +74,7 @@ while inputs:
     for s in readable:
 
 
-        if s is server:
+        if s is udp_sock:
             # A "readable" socket is ready to accept a connection
             connection, client_address = s.accept()
       
