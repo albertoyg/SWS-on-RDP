@@ -12,7 +12,7 @@ import re
 import os
 
 def processArgs():
-    return sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
+    return sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
 
 server_ip_address, server_udp_port, client_buffer_size, client_payload_length = processArgs()
 
@@ -27,14 +27,9 @@ def checkForFile(requestline):
 udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Bind the socket to the port
-server_address = ('', int(server_udp_port))
+server_address = (server_ip_address, server_udp_port)
 udp_sock.bind(server_address)
 
-
-
-
-# Listen for incoming connections
-udp_sock.listen(5)
 
 # Sockets from which we expect to read
 inputs = [udp_sock]
@@ -47,6 +42,8 @@ message_queues = {}
 
 buffer = []
 
+
+snd_buf = queue.Queue()
 # request message
 request_message = {}
 
@@ -57,6 +54,10 @@ ipandport = "{ip}:{port}".format(ip = sys.argv[1], port = server_udp_port)
 timeout = 30
 
 lastmessage = 'not empty'
+
+test = 0
+
+otherport = 0
 
 while inputs:
 
@@ -71,25 +72,34 @@ while inputs:
     # Handle inputs
 
 
-    for s in readable:
+    # for s in readable:
 
 
-        if s is udp_sock:
-            # A "readable" socket is ready to accept a connection
-            connection, client_address = s.accept()
+    #     if s is udp_sock:
+    #         # A "readable" socket is ready to accept a connection
+    #         connection, client_address = s.accept()
       
-            connection.setblocking(0)
-            inputs.append(connection)
-            # outputs.append(s)
-            request_message[connection] = queue.Queue() # OR queue
-            #new_request[s] = True
-            #persistent_socket[connection] = True
-            # Give the connection a queue for data
-            # we want to send
-            message_queues[connection] = queue.Queue()
+    #         connection.setblocking(0)
+    #         inputs.append(connection)
+    #         # outputs.append(s)
+    #         request_message[connection] = queue.Queue() # OR queue
+    #         #new_request[s] = True
+    #         #persistent_socket[connection] = True
+    #         # Give the connection a queue for data
+    #         # we want to send
+    #         message_queues[connection] = queue.Queue()
             
 
-        else:
+    #     else:
+    if udp_sock in readable:
+            packet = udp_sock.recvfrom(2048)
+            otherport = (packet[-1][1])
+            print(packet)
+            if test == 0:
+                test = 1
+                newpacket = "yo brother"
+                snd_buf.put(newpacket)
+            '''
             message1 =  s.recv(1024).decode()
             if message1:   
                 if message1.count('\n') != 1:
@@ -317,39 +327,49 @@ while inputs:
                     lastmessage = message1
                     if s not in outputs:
                         outputs.append(s)
+            '''
+            
                     
 
 
     # Handle outputs
-    for s in writable:
-            try:
-                next_msg = message_queues[s].get_nowait()
-                log = request_message[s].get_nowait()
-            except queue.Empty:
-            # No messages need to be sent so stop watching
-                outputs.remove(s)
-                if s not in inputs:
-                    inputs.remove(s)
-                    outputs.remove(s)
-                    s.close()
-                    del message_queues[s]
-                    del request_message[s]
-            else:
-                close = True
-                s.send(next_msg.encode())
-                print(log)
-                decoded = next_msg.split()
-                # print(decoded)
-                for msg in decoded:
-                    if re.search(re.compile(r"keep-alive"), msg):
-                        close = False
-                if close == True:
-                    inputs.remove(s)
-                    outputs.remove(s)
-                    if s not in inputs:
-                        s.close()
-                        del message_queues[s]
-                        del request_message[s]
+    if udp_sock in writable:
+            while not snd_buf.empty():
+                    try:
+                        # get message
+                        message = snd_buf.get_nowait()
+                        
+                        udp_sock.sendto(message.encode(), ("192.168.1.100", otherport))
+                    except snd_buf.empty():
+                        continue
+            # try:
+            #     next_msg = message_queues[s].get_nowait()
+            #     log = request_message[s].get_nowait()
+            # except queue.Empty:
+            # # No messages need to be sent so stop watching
+            #     outputs.remove(s)
+            #     if s not in inputs:
+            #         inputs.remove(s)
+            #         outputs.remove(s)
+            #         s.close()
+            #         del message_queues[s]
+            #         del request_message[s]
+            # else:
+            #     close = True
+            #     s.send(next_msg.encode())
+            #     print(log)
+            #     decoded = next_msg.split()
+            #     # print(decoded)
+            #     for msg in decoded:
+            #         if re.search(re.compile(r"keep-alive"), msg):
+            #             close = False
+            #     if close == True:
+            #         inputs.remove(s)
+            #         outputs.remove(s)
+            #         if s not in inputs:
+            #             s.close()
+            #             del message_queues[s]
+            #             del request_message[s]
                     
                 
 
