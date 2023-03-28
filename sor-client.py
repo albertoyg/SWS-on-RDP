@@ -7,7 +7,7 @@ import re
 import os
 
 def processArgs():
-    return sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+    return sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
 
 def getFileNames():
     inputFiles = []
@@ -23,11 +23,11 @@ ipAddress, UdpPort, bufferSize, payloadLength = processArgs()
 inputFiles, outputFiles = getFileNames()
 
 
-# def checkLen():
-#     if file_bytes >= 1024:
-#         return 1024
-#     else:
-#         return file_bytes
+def checkLen():
+    if file_bytes >= 1024:
+        return 1024
+    else:
+        return file_bytes
 
 # def testfile(readfile):
 #     if os.path.isfile(readfile):
@@ -37,8 +37,9 @@ inputFiles, outputFiles = getFileNames()
 #     else:
 #         return(False)
 
-# def writeToFile(str):
+def writeToFile(str):
     # outputfile.write(str)
+    X =1 
 
     
 
@@ -63,10 +64,10 @@ if file_content == False:
 udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # # Bind the socket to the port
-# server_address = ('', port)
+# server_address = (ipAddress, UdpPort)
 # udp_sock.bind(server_address)
 
-
+firstpayload = "GET /{name} HTTP/1.0\nConnection: keep-alive".format(name = inputFiles[0])
 
 # Sockets from which we expect to read
 inputs = [udp_sock]
@@ -95,7 +96,8 @@ window = 5120
 state = 'closed'
 
 # first packet
-synFormat = "SYN\nSequence: 0\nLength: 0\n\n"
+synFormat = "SYN\nSequence: 0\nLength: 0\n\n{pay}".format(pay = firstpayload)
+
 # put syn packet in send buffer
 snd_buf.put(synFormat)
 
@@ -124,7 +126,9 @@ while True:
 
     if udp_sock in readable: # rec
         # get packet
-        packet = udp_sock.recv(2048)
+        packet = udp_sock.recvfrom(2048)
+        print(packet)
+        sys.exit
         # parse packet
         head, seq, tail = packet.partition(b'\n\n')
         head = head.decode()
@@ -172,7 +176,7 @@ while True:
             writeToFile(tail.decode())
             if len < 1024:        
                 # close output file 
-                outputfile.close()
+                X = 1
                 
             
     
@@ -222,15 +226,15 @@ while True:
     if udp_sock in writable: # send
             while not snd_buf.empty():
                 try:
-                    # get message
+                    # # get message
+                    # 
+                    # # split message
+                    # messagelist = message.split('\n')
+                    # # print log
+                    # log = "{time}: Send; {cmd}; {seq}; {len}".format(time = curtime, cmd = messagelist[0], seq = messagelist[1], len = messagelist[2])
+                    # print(log)
                     message = snd_buf.get_nowait()
-                    # split message
-                    messagelist = message.split('\n')
-                    # print log
-                    log = "{time}: Send; {cmd}; {seq}; {len}".format(time = curtime, cmd = messagelist[0], seq = messagelist[1], len = messagelist[2])
-                    print(log)
-                    
-                    # send message
+                    # # send message
                     udp_sock.sendto(message.encode(), ("10.10.1.100", 8888))
                     time.sleep(0.1)
                 except snd_buf.empty():
