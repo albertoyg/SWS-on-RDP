@@ -10,18 +10,19 @@ def processArgs():
     return sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
 
 def getFileNames():
-    inputFiles = []
-    outputFiles = []
     for i in range(5, len(sys.argv), 2):
         inputFiles.append(sys.argv[i])
         outputFiles.append(sys.argv[i + 1])
-    return inputFiles, outputFiles
+
 
 # unload the parameters
 ipAddress, UdpPort, bufferSize, payloadLength = processArgs()
 # get all the files described in the command line
-inputFiles, outputFiles = getFileNames()
-
+inputFiles = []
+print(inputFiles)
+outputFiles = []
+getFileNames()
+numFiles = len(inputFiles)
 
 def checkLen():
     if file_bytes >= 1024:
@@ -38,10 +39,18 @@ def checkLen():
 #         return(False)
 
 def writeToFile(str):
-    # outputfile.write(str)
-    X =1 
+    outputfile.write(str)
 
-    
+def createOutFile(currentFile):
+    outputfile = open(outputFiles[currentFile], 'a+')   
+    return outputfile
+
+def sendNexthttp(currentFile, seq, ack):
+    httpreq = "GET /{name} HTTP/1.0\nConnection: keep-alive".format(name = inputFiles[currentFile])
+    rdpreq = "DAT|ACK\nSequence: {seqs}\nLength: {leng}\n Acknowledgment: {ak}\n Window: {win}\n\n{pay}".format(ak = ack, seqs = seq, win = bufferSize, pay = httpreq, leng = len(httpreq))
+        # put syn packet in send buffer
+
+    snd_buf.put(rdpreq)
 
 # kill program
 doneSending = False
@@ -67,7 +76,7 @@ udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # server_address = (ipAddress, UdpPort)
 # udp_sock.bind(server_address)
 
-
+currentFile = 0
 
 # Sockets from which we expect to read
 inputs = [udp_sock]
@@ -94,11 +103,12 @@ maxWindow = 5120
 
 # init state
 state = 'closed'
-
+savedSeq = 0
+savedLen = 0
 # first packet
+outputfile = createOutFile(currentFile)
 
-
-
+lastfile = False
 # time variable 
 curtime = time.strftime("%a %b %d %H:%M:%S %Z %Y", time.localtime())
 
@@ -113,7 +123,7 @@ while x < 10000:
 
 if state == 'closed':
         firstpayload = "GET /{name} HTTP/1.0\nConnection: keep-alive".format(name = inputFiles[0])
-        synFormat = "SYN|DAT|ACK\nSequence: 0\nLength: {len}\n Acknowledgment: -1\n Window: {win}\n\n{pay}".format(win = bufferSize, pay = firstpayload, len = len(firstpayload))
+        synFormat = "SYN|DAT|ACK\nSequence: 0\nLength: {leng}\n Acknowledgment: -1\n Window: {win}\n\n{pay}".format(win = bufferSize, pay = firstpayload, leng = len(firstpayload))
         # put syn packet in send buffer
         snd_buf.put(synFormat)
         state = 'syn-sent'
@@ -130,10 +140,11 @@ while True:
 
 
     if udp_sock in readable: # rec
+
         # get packet
         packet = udp_sock.recvfrom(2048)
         
-        print(packet)
+        # print(packet)
 
         packetContent = packet[0].decode()
         head, seq, tail = packet[0].partition(b'\n\n')
@@ -146,26 +157,62 @@ while True:
         command = head[0]
 
         if command == 'SYN|ACK':
-            print(head)
+            # print(head)
             # log
-            log = "{time}: Receive; {cmd}; {seq}; {len}; {ack}; {win}".format(time = curtime, cmd = command, seq = head[1], len = head[2], ack = head[3], win = head[4])
+            log = "{time}: Receive; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = command, seq = head[1], leng = head[2], ack = head[3], win = head[4])
             print(log)
             # change state is syn-sent 
             if state == 'syn-sent':
                 state = 'connection'
 
-            # if state == 'closed':
-            #     udp_sock.close()
-            #     sys.exit()
-        # # parse packet
-        # head, seq, tail = packet.partition(b'\n\n')
-        # head = head.decode()
-        # # append to recv buffer
-        # rcv_buf.put(head)
-        # # model it
-        # head = head.split('\n')
-        # # get command
-        # command = head[0]
+        if command == 'DAT|ACK':
+
+            log = "{time}: Receive; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = command, seq = head[1], leng = head[2], ack = head[3], win = head[4])
+            print(log)
+            # get len
+            leng = head[2].split()
+            leng = int(leng[-1])
+
+            # get seq
+            seq = head[1].split()
+            seq = int(seq[-1])
+            # write 
+            writeToFile(tail.decode())
+
+            if leng < 1024:        
+                # close output file 
+                outputfile.close()
+                if numFiles != 1:
+                    maxbytes = []
+                    x = 4
+                    while x < 10000:
+                        value = 1024*x + (leng + 1)
+                        maxbytes.append(value)
+                        x += 5
+ 
+
+                    currentFile = currentFile + 1
+                    if currentFile == numFiles:
+                        lastfile = True
+                    outputfile = createOutFile(currentFile)
+                    aklen = head[3].split()
+                    aklen = int(aklen[-1]) 
+                    sendNexthttp(currentFile, aklen, leng + 1)
+
+            
+            if seq in maxbytes:
+                # byte = lastbyte + byte
+                # if doneSending == False:
+                ack = "ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  savedSeq + savedLen + 1, win = maxWindow, end = leng + seq)
+                # send to snd buffer
+                snd_buf.put(ack)
+                # lastbyte = 1
+                # set ACK message
+                # ack = "DAT|ACK\nSequence: {ackseq}\nAcknowlegment: {end}\nWindow: {win}\n\n".format(end =  len + seq, win = maxWindow, ackseq = head[3])
+                # send to snd buffer
+                # snd_buf.put(ack)
+                if doneSending == True and state == 'open':
+                    state = 'send-fin'
 
         
 
@@ -173,44 +220,32 @@ while True:
             while not snd_buf.empty():
                 try:
                     message = snd_buf.get_nowait()
+     
                     # # get message
                     # 
                     # # split message
                     messagelist = message.split('\n')
-                    if messagelist[0] == 'SYN|DAT|ACK':
+                    if messagelist[0] == 'SYN|DAT|ACK' or messagelist[0] == 'DAT|ACK':
                     # # print log
-                        log = "{time}: Send; {cmd}; {seq}; {len}; {ack}; {win}".format(time = curtime, cmd = messagelist[0], seq = messagelist[1], len = messagelist[2], ack = messagelist[3], win =  messagelist[4])
+                        log = "{time}: Send; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = messagelist[0], seq = messagelist[1], leng = messagelist[2], ack = messagelist[3], win =  messagelist[4])
                         print(log)
-                   
+                        if messagelist[0] == 'DAT|ACK':
+                            savedSeq = messagelist[1].split()
+                            savedSeq = int(savedSeq[-1])
+                            savedLen = messagelist[2].split()
+                            savedLen = int(savedLen[-1])
+                    if messagelist[0] == 'ACK':
+                    # # # print log
+     
+                        log = "{time}: Send; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = messagelist[0], seq = messagelist[1], leng = messagelist[2], ack = messagelist[3], win =  messagelist[4])
+                        print(log)
                     # # send message
                     udp_sock.sendto(message.encode(), ("10.10.1.100", 8888))
                     time.sleep(0.1)
                 except snd_buf.empty():
                     continue
 
-            if state == 'open'and doneSending == False:
-                while(lastbyte < 5121 and doneSending == False):
-            # check payload length
-                    length = checkLen()
-                    if length != 1024:
-                        doneSending = True
-  
-                        
-                    # change length:
-                    file_bytes = file_bytes - 1024
-
-                    payload = file_string[0:length]
-                    
-                    # init packet
-                    dat = "DAT\nSequence: {num}\nLength: {len}\n\n{pay}".format(num = byte, len = length, pay = payload)
-                    # dat = "DAT\nSequence: {num}\nLength: {len}\n\n".format(num = lastbyte, len = length)
-                    file_string = file_string[length:]
-                     # send to snd buffer
-                    snd_buf.put(dat)
-                    byte = length + byte
-                    # print(byte)
-                    lastbyte = lastbyte + length
-                time.sleep(0.1)
+   
 '''
  # check and handle ack
         if command == 'ACK':
