@@ -1,3 +1,4 @@
+from pickle import FALSE, TRUE
 import select
 import socket
 import sys
@@ -7,7 +8,7 @@ import re
 import os
 
 def processArgs():
-    return sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
+    return sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
 
 def getFileNames():
     for i in range(5, len(sys.argv), 2):
@@ -24,11 +25,7 @@ outputFiles = []
 getFileNames()
 numFiles = len(inputFiles)
 
-def checkLen():
-    if file_bytes >= 1024:
-        return 1024
-    else:
-        return file_bytes
+
 
 # def testfile(readfile):
 #     if os.path.isfile(readfile):
@@ -97,9 +94,10 @@ lastbyte = 0
 length = 0
 
 # max payload
-payload = 1024
+payload = payloadLength
 # init window size
-maxWindow = 5120
+maxWindow = bufferSize
+lasttemp = False
 
 # init state
 state = 'closed'
@@ -117,7 +115,7 @@ byte = 1
 maxbytes = []
 x = 4
 while x < 10000:
-    value = 1024*x + 1
+    value = payloadLength*x + 1
     maxbytes.append(value)
     x += 5
 
@@ -155,6 +153,10 @@ while True:
         head = head.split('\n')
         # commands, sequence, length, ack, win = head[0], head[1], head[2], head[3], head[4]
         command = head[0]
+        if command == 'RST':
+            log = "{time}: Receive; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = command, seq = head[1], leng = head[2], ack = head[3], win = head[4])
+            print(log)
+            sys.exit()
 
         if command == 'SYN|ACK':
             # print(head[2])
@@ -176,6 +178,7 @@ while True:
             ak = int(ak[-1])
             ack = "ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  seqq, win = maxWindow, end = ak+1)
             snd_buf.put(ack)
+            sys.exit()
 
         if command == 'DAT|ACK':
 
@@ -191,11 +194,15 @@ while True:
             # write 
             writeToFile(tail.decode())
 
-            if leng < 1024:        
+            if leng < payloadLength:        
                 # print(lastfile)
                 # close output file 
                 if lastfile == True:
-                    state = 'fin-sent'
+                    lasttemp = True
+                    # state = 'fin-sent'
+                    finAck = "FIN|ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  savedSeq + savedLen, win = maxWindow, end = leng + seq)
+                    # send to snd buffer
+                    snd_buf.put(finAck)
                 else:
 
                     outputfile.close()
@@ -203,7 +210,7 @@ while True:
                         maxbytes = []
                         x = 4
                         while x < 10000:
-                            value = 1024*x + (leng + 1)
+                            value = payloadLength*x + (leng + 1)
                             maxbytes.append(value)
                             x += 5
     
@@ -225,14 +232,14 @@ while True:
                             aklen = head[3].split()
                             aklen = int(aklen[-1]) 
                             sendNexthttp(currentFile, aklen, leng + 1)
-
+            
 
             
-            if seq in maxbytes:
+            if seq in maxbytes and lasttemp == False:
                 # byte = lastbyte + byte
                 # if doneSending == False:
                 if state == 'fin-sent':
-                    print(state)
+             
                     # print('here')
                     finAck = "FIN|ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  savedSeq + savedLen, win = maxWindow, end = leng + seq)
                     # send to snd buffer
