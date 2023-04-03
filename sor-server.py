@@ -12,7 +12,7 @@ import re
 import os
 
 def processArgs():
-    return sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
+    return sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
 
 server_ip_address, server_udp_port, client_buffer_size, client_payload_length = processArgs()
 
@@ -25,8 +25,8 @@ def checkForFile(requestline):
     return (os.path.isfile(filename), filename)
 
 def checkLen():
-    if file_bytes >= 1024:
-        return 1024
+    if file_bytes >= client_payload_length:
+        return client_payload_length
     else:
         return file_bytes
 
@@ -152,113 +152,116 @@ while inputs:
             intlen = length.split(' ')
             intseq = sequence.split(' ')
             commands = commands.split('|')
+            
+            if client_buffer_size != 0:
+                # check if commands contains SYN
+                for command in commands:
+                    if command == 'SYN':
+                        # recieved syn, payload contains http request
+                        messages = tail.split('\n')
+                        overallAck = int(intlen[-1]) + 1
+                        # print(length)
+                        # print(sequence)
+                        for curRequest in range(len(messages)):
+                            # check if request is in correct GET.... format
+                                if re.search(re.compile(r"GET /.* HTTP/1.0"), messages[curRequest]):
+                                # if it is, check if next request is connection: alive
+                                    if re.search(re.compile(r"connection:\s*Keep-alive", re.IGNORECASE), messages[curRequest+1]):
+                                    # if connection: keep-alive, check if file exists 
+                                    
+                                        found, filename = checkForFile(messages[curRequest])
+                                        if found: 
+                                            HTMLfile = open(filename, 'r')
+                                            ok = 'HTTP/1.0 200 OK\r\nConnection: keep-alive\r\n\r\n{content}'.format(content = HTMLfile.read())
+                                            sm = 'HTTP/1.0 200 OK'
+                                            log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
+                                            print(log)
 
-            # check if commands contains SYN
-            for command in commands:
-                if command == 'SYN':
-                    # recieved syn, payload contains http request
+                                            # check if ACK is included:
+                                            for command in commands:
+                                                if command == 'ACK':
+                                            # send back syn ack pack
+                                                    ack = "SYN|ACK\nSequence: {seq}\nLength: 0\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size)
+                                                    snd_buf.put(ack)
+                                            
+                                                    curSeq += 1
+                                            for command in commands:
+                                                if command == 'DAT':
+                                                    key = 'DatAck'
+                                                    fileContent = testfile(filename)
+                                                    file_bytes = len(fileContent)
+                                                    file_string = fileContent.decode()
+                                    
+                                                    # datAck = "DAT|ACK\nSequence: {seq}\nLength = {len}}\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size, len = file_bytes)
+                                                    state = 'connection open'
+                                                    
+                                                    # snd_buf.put(datAck)
+                                                    
+
+                                        else:
+                                #       # file not found
+                                            not_found = 'HTTP/1.0 404 Not Found\r\nConnection: keep-alive\r\n\r\n'
+                                        #   PRINT notfound MESSAGE TO CLIENT 
+                                            # message_queues[s].put(not_found)
+                                        #   BUT FOR NOW....
+                                            sm = 'HTTP/1.0 404 Not Found'
+                                            log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
+                                            print(log)
+        
+                if head[0] == 'DAT|ACK':
+                    print(int(intlen[-1]))
+                    print(int(intseq[-1]))
+                    overallAck = int(intlen[-1]) + int(intseq[-1])
                     messages = tail.split('\n')
-                    overallAck = int(intlen[-1]) + 1
-                    # print(length)
-                    # print(sequence)
                     for curRequest in range(len(messages)):
-                        # check if request is in correct GET.... format
-                            if re.search(re.compile(r"GET /.* HTTP/1.0"), messages[curRequest]):
-                            # if it is, check if next request is connection: alive
-                                if re.search(re.compile(r"connection:\s*Keep-alive", re.IGNORECASE), messages[curRequest+1]):
-                                # if connection: keep-alive, check if file exists 
-                                   
-                                    found, filename = checkForFile(messages[curRequest])
-                                    if found: 
-                                        HTMLfile = open(filename, 'r')
-                                        ok = 'HTTP/1.0 200 OK\r\nConnection: keep-alive\r\n\r\n{content}'.format(content = HTMLfile.read())
-                                        sm = 'HTTP/1.0 200 OK'
-                                        log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
-                                        print(log)
+                            # check if request is in correct GET.... format
+                                if re.search(re.compile(r"GET /.* HTTP/1.0"), messages[curRequest]):
+                                # if it is, check if next request is connection: alive
+                                    if re.search(re.compile(r"connection:\s*Keep-alive", re.IGNORECASE), messages[curRequest+1]):
+                                    # if connection: keep-alive, check if file exists 
+                                    
+                                        found, filename = checkForFile(messages[curRequest])
+                                        if found: 
+                                            HTMLfile = open(filename, 'r')
+                                            ok = 'HTTP/1.0 200 OK\r\nConnection: keep-alive\r\n\r\n{content}'.format(content = HTMLfile.read())
+                                            sm = 'HTTP/1.0 200 OK'
+                                            log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
+                                            print(log)
 
-                                        # check if ACK is included:
-                                        for command in commands:
-                                            if command == 'ACK':
-                                        # send back syn ack pack
-                                                ack = "SYN|ACK\nSequence: {seq}\nLength: 0\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size)
-                                                snd_buf.put(ack)
-                                        
-                                                curSeq += 1
-                                        for command in commands:
-                                            if command == 'DAT':
-                                                key = 'DatAck'
-                                                fileContent = testfile(filename)
-                                                file_bytes = len(fileContent)
-                                                file_string = fileContent.decode()
-                                  
-                                                # datAck = "DAT|ACK\nSequence: {seq}\nLength = {len}}\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size, len = file_bytes)
-                                                state = 'connection open'
-                                                
-                                                # snd_buf.put(datAck)
-                                                
+                                            
+                                            
+                                            key = 'DatAck'
+                                            fileContent = testfile(filename)
+                                            file_bytes = len(fileContent)
+                                            file_string = fileContent.decode()
+                                    
+                                                    # datAck = "DAT|ACK\nSequence: {seq}\nLength = {len}}\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size, len = file_bytes)
+                                            state = 'connection open'
+                                            doneSending = False
+                                                    # snd_buf.put(datAck)
+                                                    
 
-                                    else:
-                            #       # file not found
-                                        not_found = 'HTTP/1.0 404 Not Found\r\nConnection: keep-alive\r\n\r\n'
-                                    #   PRINT notfound MESSAGE TO CLIENT 
-                                        # message_queues[s].put(not_found)
-                                    #   BUT FOR NOW....
-                                        sm = 'HTTP/1.0 404 Not Found'
-                                        log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
-                                        print(log)
-       
-            if head[0] == 'DAT|ACK':
-                print(int(intlen[-1]))
-                print(int(intseq[-1]))
-                overallAck = int(intlen[-1]) + int(intseq[-1])
-                messages = tail.split('\n')
-                for curRequest in range(len(messages)):
-                        # check if request is in correct GET.... format
-                            if re.search(re.compile(r"GET /.* HTTP/1.0"), messages[curRequest]):
-                            # if it is, check if next request is connection: alive
-                                if re.search(re.compile(r"connection:\s*Keep-alive", re.IGNORECASE), messages[curRequest+1]):
-                                # if connection: keep-alive, check if file exists 
-                                   
-                                    found, filename = checkForFile(messages[curRequest])
-                                    if found: 
-                                        HTMLfile = open(filename, 'r')
-                                        ok = 'HTTP/1.0 200 OK\r\nConnection: keep-alive\r\n\r\n{content}'.format(content = HTMLfile.read())
-                                        sm = 'HTTP/1.0 200 OK'
-                                        log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
-                                        print(log)
+                                        else:
+                                #       # file not found
+                                            not_found = 'HTTP/1.0 404 Not Found\r\nConnection: keep-alive\r\n\r\n'
+                                        #   PRINT notfound MESSAGE TO CLIENT 
+                                            # message_queues[s].put(not_found)
+                                        #   BUT FOR NOW....
+                                            sm = 'HTTP/1.0 404 Not Found'
+                                            log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
+                                            print(log)
 
-                                        
-                                        
-                                        key = 'DatAck'
-                                        fileContent = testfile(filename)
-                                        file_bytes = len(fileContent)
-                                        file_string = fileContent.decode()
-                                  
-                                                # datAck = "DAT|ACK\nSequence: {seq}\nLength = {len}}\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size, len = file_bytes)
-                                        state = 'connection open'
-                                        doneSending = False
-                                                # snd_buf.put(datAck)
-                                                
+                if head[0] == 'FIN|ACK':
+                    ak = ack.split()
+                    ak = ak[-1]
+                    seq = sequence.split()
+                    seq = int(seq[-1])
 
-                                    else:
-                            #       # file not found
-                                        not_found = 'HTTP/1.0 404 Not Found\r\nConnection: keep-alive\r\n\r\n'
-                                    #   PRINT notfound MESSAGE TO CLIENT 
-                                        # message_queues[s].put(not_found)
-                                    #   BUT FOR NOW....
-                                        sm = 'HTTP/1.0 404 Not Found'
-                                        log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
-                                        print(log)
-
-            if head[0] == 'FIN|ACK':
-                ak = ack.split()
-                ak = ak[-1]
-                seq = sequence.split()
-                seq = int(seq[-1])
-
-                finack = "FIN|ACK\nSequence: {seq}\nLength = 0\nAcknowlegment: {ack}\nWindow: {win}\n\n".format(seq = ak, win = client_buffer_size, ack = seq+1)
-                snd_buf.put(finack)
-                
+                    finack = "FIN|ACK\nSequence: {seq}\nLength: 0\nAcknowlegment: {ack}\nWindow: {win}\n\n".format(seq = ak, win = client_buffer_size, ack = seq+1)
+                    snd_buf.put(finack)
+            else:
+                    rst = "RST\nSequence: 0\nLength: 0\nAcknowlegment: -1\nWindow: 1\n\n"
+                    snd_buf.put(rst)
   
   
 
@@ -279,18 +282,18 @@ while inputs:
 
             # check payload length
                     length = checkLen()
-                    if length != 1024:
+                    if length != client_payload_length:
                         doneSending = True
                     
                         
                     # change length:
-                    file_bytes = file_bytes - 1024
+                    file_bytes = file_bytes - client_payload_length
 
                     payload = file_string[0:length]
                   
                     if key == 'DatAck':
                     # init packet
-                        dat = "DAT|ACK\nSequence: {num}\nLength: {len}\nAcknowledgement: {ack}\nWindow = {win}\n\n{pay}".format(num = byte, len = length, pay = payload, ack = overallAck, win = client_buffer_size)
+                        dat = "DAT|ACK\nSequence: {num}\nLength: {len}\nAcknowledgement: {ack}\nWindow: {win}\n\n{pay}".format(num = byte, len = length, pay = payload, ack = overallAck, win = client_buffer_size)
                     # dat = "DAT\nSequence: {num}\nLength: {len}\n\n".format(num = lastbyte, len = length)
                     file_string = file_string[length:]
                      # send to snd buffer
