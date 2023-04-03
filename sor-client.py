@@ -157,13 +157,25 @@ while True:
         command = head[0]
 
         if command == 'SYN|ACK':
-            # print(head)
+            # print(head[2])
             # log
+            # leng1 = head[2].split()
+            # leng1 = int(leng1[-1])
             log = "{time}: Receive; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = command, seq = head[1], leng = head[2], ack = head[3], win = head[4])
             print(log)
             # change state is syn-sent 
             if state == 'syn-sent':
                 state = 'connection'
+        
+        if command == 'FIN|ACK':
+            log = "{time}: Receive; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = command, seq = head[1], leng = head[2], ack = head[3], win = head[4])
+            print(log)
+            seqq = head[3].split()
+            seqq = seqq[-1]
+            ak = head[1].split()
+            ak = int(ak[-1])
+            ack = "ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  seqq, win = maxWindow, end = ak+1)
+            snd_buf.put(ack)
 
         if command == 'DAT|ACK':
 
@@ -180,32 +192,57 @@ while True:
             writeToFile(tail.decode())
 
             if leng < 1024:        
+                # print(lastfile)
                 # close output file 
-                outputfile.close()
-                if numFiles != 1:
-                    maxbytes = []
-                    x = 4
-                    while x < 10000:
-                        value = 1024*x + (leng + 1)
-                        maxbytes.append(value)
-                        x += 5
- 
+                if lastfile == True:
+                    state = 'fin-sent'
+                else:
 
-                    currentFile = currentFile + 1
-                    if currentFile == numFiles:
-                        lastfile = True
-                    outputfile = createOutFile(currentFile)
-                    aklen = head[3].split()
-                    aklen = int(aklen[-1]) 
-                    sendNexthttp(currentFile, aklen, leng + 1)
+                    outputfile.close()
+                    if numFiles != 1:
+                        maxbytes = []
+                        x = 4
+                        while x < 10000:
+                            value = 1024*x + (leng + 1)
+                            maxbytes.append(value)
+                            x += 5
+    
+                        
+                        # currentFile = currentFile + 1
+                        # if currentFile == numFiles:
+                        #     lastfile = True
+                        # outputfile = createOutFile(currentFile)
+                        # aklen = head[3].split()
+                        # aklen = int(aklen[-1]) 
+                        # sendNexthttp(currentFile, aklen, leng + 1)
+
+                        if currentFile != numFiles -1 :
+                            currentFile = currentFile + 1
+
+                            if currentFile == numFiles -1 :
+                                lastfile = True
+                            outputfile = createOutFile(currentFile)
+                            aklen = head[3].split()
+                            aklen = int(aklen[-1]) 
+                            sendNexthttp(currentFile, aklen, leng + 1)
+
 
             
             if seq in maxbytes:
                 # byte = lastbyte + byte
                 # if doneSending == False:
-                ack = "ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  savedSeq + savedLen + 1, win = maxWindow, end = leng + seq)
-                # send to snd buffer
-                snd_buf.put(ack)
+                if state == 'fin-sent':
+                    print(state)
+                    # print('here')
+                    finAck = "FIN|ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  savedSeq + savedLen, win = maxWindow, end = leng + seq)
+                    # send to snd buffer
+                    snd_buf.put(finAck)
+                else:
+   
+                    
+                    ack = "ACK\nSequence: {ackseq}\nLength: 0\nAcknowlegment: {end}\nWindow: {win}\n\n".format(ackseq =  savedSeq + savedLen, win = maxWindow, end = leng + seq)
+                    # send to snd buffer
+                    snd_buf.put(ack)
                 # lastbyte = 1
                 # set ACK message
                 # ack = "DAT|ACK\nSequence: {ackseq}\nAcknowlegment: {end}\nWindow: {win}\n\n".format(end =  len + seq, win = maxWindow, ackseq = head[3])
@@ -220,12 +257,13 @@ while True:
             while not snd_buf.empty():
                 try:
                     message = snd_buf.get_nowait()
-     
+                    
+                    
                     # # get message
                     # 
                     # # split message
                     messagelist = message.split('\n')
-                    if messagelist[0] == 'SYN|DAT|ACK' or messagelist[0] == 'DAT|ACK':
+                    if messagelist[0] == 'SYN|DAT|ACK' or messagelist[0] == 'DAT|ACK' or messagelist[0] == 'FIN|ACK':
                     # # print log
                         log = "{time}: Send; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = messagelist[0], seq = messagelist[1], leng = messagelist[2], ack = messagelist[3], win =  messagelist[4])
                         print(log)
@@ -236,7 +274,7 @@ while True:
                             savedLen = int(savedLen[-1])
                     if messagelist[0] == 'ACK':
                     # # # print log
-     
+                        # print("here")
                         log = "{time}: Send; {cmd}; {seq}; {leng}; {ack}; {win}".format(time = curtime, cmd = messagelist[0], seq = messagelist[1], leng = messagelist[2], ack = messagelist[3], win =  messagelist[4])
                         print(log)
                     # # send message
