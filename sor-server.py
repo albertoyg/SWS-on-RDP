@@ -150,6 +150,7 @@ while inputs:
             head = head.split('\n')
             commands, sequence, length, ack, win = head[0], head[1], head[2], head[3], head[4]
             intlen = length.split(' ')
+            intseq = sequence.split(' ')
             commands = commands.split('|')
 
             # check if commands contains SYN
@@ -158,6 +159,8 @@ while inputs:
                     # recieved syn, payload contains http request
                     messages = tail.split('\n')
                     overallAck = int(intlen[-1]) + 1
+                    # print(length)
+                    # print(sequence)
                     for curRequest in range(len(messages)):
                         # check if request is in correct GET.... format
                             if re.search(re.compile(r"GET /.* HTTP/1.0"), messages[curRequest]):
@@ -177,7 +180,7 @@ while inputs:
                                         for command in commands:
                                             if command == 'ACK':
                                         # send back syn ack pack
-                                                ack = "SYN|ACK\nSequence: {seq}\nLength = 0\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size)
+                                                ack = "SYN|ACK\nSequence: {seq}\nLength: 0\nAcknowlegment: 1\nWindow: {win}\n\n".format(seq = curSeq, win = client_buffer_size)
                                                 snd_buf.put(ack)
                                         
                                                 curSeq += 1
@@ -205,6 +208,9 @@ while inputs:
                                         print(log)
        
             if head[0] == 'DAT|ACK':
+                print(int(intlen[-1]))
+                print(int(intseq[-1]))
+                overallAck = int(intlen[-1]) + int(intseq[-1])
                 messages = tail.split('\n')
                 for curRequest in range(len(messages)):
                         # check if request is in correct GET.... format
@@ -243,6 +249,16 @@ while inputs:
                                         sm = 'HTTP/1.0 404 Not Found'
                                         log = "{time}: {ipport} {req}; {res}".format(time = curtime, ipport = ipandport, req = messages[curRequest], res = sm)
                                         print(log)
+
+            if head[0] == 'FIN|ACK':
+                ak = ack.split()
+                ak = ak[-1]
+                seq = sequence.split()
+                seq = int(seq[-1])
+
+                finack = "FIN|ACK\nSequence: {seq}\nLength = 0\nAcknowlegment: {ack}\nWindow: {win}\n\n".format(seq = ak, win = client_buffer_size, ack = seq+1)
+                snd_buf.put(finack)
+                
   
   
 
@@ -258,17 +274,20 @@ while inputs:
                     except snd_buf.empty():
                         continue
             if state == 'connection open'and doneSending == False:
-                while(lastbyte < 5121 and doneSending == False):
+                
+                while(doneSending == False):
+
             # check payload length
                     length = checkLen()
                     if length != 1024:
                         doneSending = True
-  
+                    
                         
                     # change length:
                     file_bytes = file_bytes - 1024
 
                     payload = file_string[0:length]
+                  
                     if key == 'DatAck':
                     # init packet
                         dat = "DAT|ACK\nSequence: {num}\nLength: {len}\nAcknowledgement: {ack}\nWindow = {win}\n\n{pay}".format(num = byte, len = length, pay = payload, ack = overallAck, win = client_buffer_size)
